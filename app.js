@@ -11,22 +11,35 @@ const detail=document.createElement("section");
 detail.id="course-detail";detail.hidden=true;detail.setAttribute("aria-label","Ficha del curso");
 detail.innerHTML='<div class="detail-header"><button type="button" id="detail-back">← Volver a resultados</button><span>FICHA 360 · ETOP MÓVIL</span></div><div id="detail-content"></div>';
 results.insertAdjacentElement("afterend",detail);
-document.getElementById("detail-back").addEventListener("click",()=>{detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;results.scrollIntoView({block:"start"});});
+const detailExtras=()=>document.querySelectorAll(".tiles,.notice,main > h2");
+function showMain(){detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;detailExtras().forEach(el=>el.hidden=false);}
+document.getElementById("detail-back").addEventListener("click",()=>{showMain();results.scrollIntoView({block:"start"});});
+function make(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
 function openCourse(c){
  const content=document.getElementById("detail-content");content.replaceChildren();
- const heading=document.createElement("h2");heading.textContent=field(c,"nombre curso","NOMBRE_CURSO","nombre")||"Ficha del curso";content.append(heading);
- const nrc=field(c,"nrc","NRC_COD_CAL");
- const tag=document.createElement("div");tag.className="detail-nrc";tag.textContent=nrc?"NRC "+nrc:"NRC no disponible";content.append(tag);
- const section=document.createElement("section");section.className="detail-section";
- const st=document.createElement("h3");st.textContent="Información del curso";section.append(st);
- for(const [label,keys] of [["Código de curso",["codigo curso","codigo","COD_CURSO"]],["Estado",["estado","ESTADO_CAL"]],["Tutor",["tutor","NOMBRE_TUTOR"]],["Facultad",["facultad","FACULTAD"]],["Programa",["programa","PROGRAMA"]],["Intake",["intake","INTAKE"]],["Inicio",["fecha inicio","FECHA_INICIO"]],["Término",["fecha fin","FECHA_FIN"]]]){
-  const p=line(label,field(c,...keys));if(p)section.append(p);
+ const state=field(c,"estado","ESTADO_CAL")||"Sin estado";
+ const heading=make("div","course-heading");
+ const stateBadge=make("span","course-state",state);heading.append(stateBadge);
+ heading.append(make("h2","",field(c,"nombre curso","NOMBRE_CURSO","nombre")||"Ficha del curso"));
+ heading.append(make("p","course-nrc","NRC "+(field(c,"nrc","NRC_COD_CAL")||"No disponible")));
+ content.append(heading);
+ const section=make("section","detail-section");
+ section.append(make("h3","","Datos del curso"));
+ const grid=make("div","detail-grid");
+ for(const [label,keys] of [["Tutor",["tutor","NOMBRE_TUTOR"]],["Código",["codigo curso","codigo","COD_CURSO"]],["Inicio",["fecha inicio","FECHA_INICIO"]],["Término",["fecha fin","FECHA_FIN"]],["Facultad",["facultad","FACULTAD"]],["Intake",["intake","INTAKE"]],["Programa",["programa","PROGRAMA"]]]){
+  const value=field(c,...keys);if(!value)continue;
+  const item=make("div","detail-field");item.append(make("span","",label),make("strong","",value));grid.append(item);
  }
- content.append(section);
- const note=document.createElement("section");note.className="detail-section detail-pending";
- const title=document.createElement("h3");title.textContent="Seguimiento y acciones";note.append(title);
- const p=document.createElement("p");p.textContent="Los indicadores de estudiantes, la nómina y las acciones de edición requieren una conexión institucional autenticada. Esta ficha es de solo lectura.";note.append(p);content.append(note);
- detail.hidden=false;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;window.scrollTo({top:0,behavior:"smooth"});
+ section.append(grid);content.append(section);
+ const follow=make("section","detail-section");follow.append(make("h3","","Seguimiento estudiantil"));
+ const metrics=make("div","metric-grid");
+ for(const label of ["Estudiantes","Sin ingreso","En riesgo"]){const m=make("div","metric-box");m.append(make("strong","","—"),make("span","",label));metrics.append(m);}
+ follow.append(metrics,make("p","detail-caption","Indicadores pendientes de conexión institucional autenticada."));content.append(follow);
+ const actions=make("section","detail-section");actions.append(make("h3","","Acciones del NRC"));
+ const actionGrid=make("div","detail-actions");
+ for(const label of ["Consultar nómina","Incidencias","Calendario","Reportes"]){const b=make("button","",label);b.type="button";b.disabled=true;b.title="Pendiente de integración segura";actionGrid.append(b);}
+ actions.append(actionGrid,make("p","detail-caption","Las acciones se habilitarán cuando se validen los permisos de acceso."));content.append(actions);
+ detail.hidden=false;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);window.scrollTo({top:0,behavior:"smooth"});
 }
 
 const norm = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
@@ -44,7 +57,7 @@ async function loadCourses(){
 }
 function line(label,value){if(!value)return null;const p=document.createElement("p");const strong=document.createElement("strong");strong.textContent=label+": ";p.append(strong,document.createTextNode(value));return p;}
 function render(items){
- detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;
+ showMain();
  results.replaceChildren();
  const heading=document.createElement("h2");heading.textContent="Resultados ("+items.length+")";results.append(heading);
  if(!items.length){const p=document.createElement("p");p.textContent="No encontramos coincidencias. Prueba otro NRC, código, curso o tutor.";results.append(p);return;}
