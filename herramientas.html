@@ -836,6 +836,14 @@ function anyToISO(val){
   const s=String(val).replace('.0','').trim();if(!s||s==='NaN')return'';
   if(/^\d{8}$/.test(s))return`${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
   if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
+  // Fechas abreviadas habituales en calendarios académicos: 16-nov-26, 20-dic-2026, 9-nov.
+  const short=s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/^(\d{1,2})[\s.\/-]+(ene|feb|mar|abr|may|jun|jul|ago|sep|sept|oct|nov|dic)[\s.\/-]+(\d{2}|\d{4})$/);
+  if(short){
+    const meses={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,sept:9,oct:10,nov:11,dic:12};
+    const year=short[3].length===2?2000+Number(short[3]):Number(short[3]),month=meses[short[2]],day=Number(short[1]);
+    if(day>=1&&day<=new Date(year,month,0).getDate())return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  }
+
   const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
   const d=new Date(s);if(!isNaN(d))return d.toISOString().substring(0,10);return s;
 }
@@ -1389,10 +1397,10 @@ function calFmtFecha(v){
   return s;
 }
 function calFechaCortaISO(valor, anio){
-  const m=String(valor||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/^(\d{1,2})[\s./-]+(ene|feb|mar|abr|may|jun|jul|ago|sep|sept|oct|nov|dic)$/);
+  const m=String(valor||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/^(\d{1,2})[\s./-]+(ene|feb|mar|abr|may|jun|jul|ago|sep|sept|oct|nov|dic)(?:[\s./-]+(\d{2}|\d{4}))?$/);
   if(!m)return '';
   const meses={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,sept:9,oct:10,nov:11,dic:12};
-  const mes=meses[m[2]],dia=Number(m[1]),y=Number(anio);
+  const mes=meses[m[2]],dia=Number(m[1]),y=m[3]?(m[3].length===2?2000+Number(m[3]):Number(m[3])):Number(anio);
   if(!y||dia<1||dia>new Date(y,mes,0).getDate())return '';
   return y+'-'+String(mes).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
 }
@@ -1461,6 +1469,7 @@ function parsearTextoCalendario(texto){
   const NRC_PAT=/^\d{4,5}$/,lineas=texto.split('\n'),resultados=[];
   let headerMap=null,mF='',mP='',mPer='',anioCurso=0,ultimaFechaInicio='';
   const seenRows=new Set();
+  const omitted=[];
   const now=new Date();
   const ts=now.getFullYear().toString()
     +(now.getMonth()+1).toString().padStart(2,'0')
@@ -1508,9 +1517,9 @@ function parsearTextoCalendario(texto){
     if(!profesor||/^(TUTOR DE ACOMPAÑAMIENTO|TUTOR|X|DEFINIR)$/i.test(profesor))profesor='POR DEFINIR';
     if(!nombre&&!inicio)continue;
     const FECHA_ISO=/^\d{4}-\d{2}-\d{2}$/;
-    if(!FECHA_ISO.test(inicio))continue;
+    if(!FECHA_ISO.test(inicio)){omitted.push('NRC '+(nv||'sin NRC')+': fecha de inicio no reconocida ('+rangoCrudo+')');continue;}
     if(/^5\s*mes(es)?\s*(aprox\.?|app\.?)?$/i.test(termino))termino=calSumarMesesISO(inicio,5);
-    if(termino&&!FECHA_ISO.test(termino))continue;
+    if(termino&&!FECHA_ISO.test(termino)){omitted.push('NRC '+(nv||'sin NRC')+': fecha de término no reconocida ('+get('termino')+')');continue;}
     let nrcFinal='';
     if(NRC_PAT.test(nv)){
       nrcFinal=nv;
@@ -1524,6 +1533,7 @@ function parsearTextoCalendario(texto){
     }
     resultados.push({NRC:nrcFinal,PERIODO:periodo,FACULTAD:facultad,'CODIGO CURSO':codigo,'NOMBRE CURSO':nombre,'FECHA DE INICIO':inicio,'FECHA FIN':termino,'VERSION LOGICA':versionLogica,PROFESOR:profesor,_programa:mP});
   }
+  resultados.omitted=omitted;
   return resultados;
 }
 
@@ -1612,6 +1622,7 @@ async function processTab4(){
   const texto=document.getElementById('t4-texto').value;if(!texto.trim()){re.innerHTML='<div class="alert error">Sube el Excel o pega el bloque del calendario primero.</div>';return;}
   try{
     const filas=parsearTextoCalendario(texto);
+    if(filas.omitted?.length){re.innerHTML='<div class="alert error">No se generó el calendario porque se omitieron '+filas.omitted.length+' fila(s): '+filas.omitted.map(esc).join('; ')+'. Revisa las fechas antes de continuar.</div>';return;}
     if(!filas.length){re.innerHTML='<div class="alert error">No se pudieron extraer cursos. El formato pegado no pudo interpretarse. Revisa que incluya NRC/Periodo/Código/Versión y fechas.</div>';return;}
     const materia=document.getElementById('t4-materia').value.trim(),intakeManual=document.getElementById('t4-intake').value.trim(),programa=document.getElementById('t4-programa').value.trim(),facultad=document.getElementById('t4-facultad').value.trim(),tipo=document.getElementById('t4-tipo').value.trim(),tutor=document.getElementById('t4-tutor').value.trim(),cTut=document.getElementById('t4-correotutor').value.trim();
     if(!programa||!materia||!facultad||!tipo){re.innerHTML='<div class="alert error">Selecciona Programa, Materia, Facultad y Tipo de programa antes de procesar.</div>';return;}
