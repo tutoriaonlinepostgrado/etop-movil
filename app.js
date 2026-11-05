@@ -12,7 +12,10 @@ detail.id="course-detail";detail.hidden=true;detail.setAttribute("aria-label","F
 detail.innerHTML='<div class="detail-header"><button type="button" id="detail-back">← Volver a resultados</button><span>FICHA 360 · ETOP MÓVIL</span></div><div id="detail-content"></div>';
 results.insertAdjacentElement("afterend",detail);
 const detailExtras=()=>document.querySelectorAll(".tiles,.notice,main > h2");
-function showMain(){detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;detailExtras().forEach(el=>el.hidden=false);}
+const calendarPage=make("section","calendar-page");calendarPage.hidden=true;calendarPage.id="calendar-page";document.querySelector("main").append(calendarPage);
+function hideMain(){detail.hidden=true;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);}
+function activateNav(name){document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===name));}
+function showMain(){calendarPage.hidden=true;detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;detailExtras().forEach(el=>el.hidden=false);}
 document.getElementById("detail-back").addEventListener("click",()=>{showMain();results.scrollIntoView({block:"start"});});
 function make(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
 function openCourse(c){
@@ -37,9 +40,9 @@ function openCourse(c){
  follow.append(metrics,make("p","detail-caption","Indicadores pendientes de conexión institucional autenticada."));content.append(follow);
  const actions=make("section","detail-section");actions.append(make("h3","","Acciones del NRC"));
  const actionGrid=make("div","detail-actions");
- for(const label of ["Consultar nómina","Incidencias","Calendario","Reportes"]){
+ for(const label of ["Consultar nómina","Incidencias","Ver calendarios","Reportes"]){
  const b=make("button","",label);b.type="button";
- if(label==="Calendario"){b.className="action-enabled";b.addEventListener("click",()=>showCalendar(c,content,b));}
+ if(label==="Ver calendarios"){b.className="action-enabled";b.addEventListener("click",()=>openCalendars());}
  else{b.disabled=true;b.title="Pendiente de integración segura";}
  actionGrid.append(b);
 }
@@ -47,23 +50,61 @@ function openCourse(c){
  detail.hidden=false;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function showCalendar(c,content,button){
- let existing=document.getElementById("mobile-calendar");
- if(existing){existing.remove();button.textContent="Calendario";return;}
- const calendar=make("section","detail-section calendar-section");calendar.id="mobile-calendar";
- calendar.append(make("h3","","Calendario del curso"));
- const dates=make("div","calendar-dates");
- for(const [label,keys] of [["Inicio",["fecha inicio","FECHA_INICIO"]],["Término",["fecha fin","FECHA_FIN"]]]){
-  const item=make("div","calendar-date");
-  item.append(make("span","",label),make("strong","",field(c,...keys)||"No informado"));
-  dates.append(item);
+
+let calendarFiltered=[],calendarOffset=0;
+function optionSelect(label,values){
+ const wrap=make("label","calendar-filter");wrap.append(make("span","",label));
+ const select=make("select");select.append(new Option("Todos",""));
+ values.forEach(v=>select.append(new Option(v,v)));wrap.append(select);return {wrap,select};
+}
+function renderCalendarRows(){
+ const list=document.getElementById("calendar-list");list.replaceChildren();
+ const subset=calendarFiltered.slice(calendarOffset,calendarOffset+35);
+ for(const c of subset){
+  const card=make("button","calendar-row");
+  const top=make("div","calendar-row-top");top.append(make("strong","",field(c,"nombre curso","NOMBRE_CURSO")||"Curso sin nombre"),make("span","",field(c,"estado","ESTADO_CAL")));
+  card.append(top,make("p","","NRC "+field(c,"nrc","NRC_COD_CAL")+" · "+field(c,"codigo curso","codigo","COD_CURSO")));
+  card.append(make("p","","Tutor: "+(field(c,"tutor","NOMBRE_TUTOR")||"Sin asignar")));
+  const dates=make("div","calendar-row-dates");dates.append(make("span","","Inicio: "+(field(c,"fecha inicio","FECHA_INICIO")||"—")),make("span","","Término: "+(field(c,"fecha fin","FECHA_FIN")||"—")));card.append(dates);
+  card.addEventListener("click",()=>{calendarPage.hidden=true;openCourse(c);activateNav("Cursos");});list.append(card);
  }
- calendar.append(dates);
- calendar.append(make("p","detail-caption","Fechas obtenidas del catálogo ETOP. Consulta de solo lectura; pueden existir actualizaciones pendientes de publicación."));
- const close=make("button","calendar-close","Cerrar calendario");close.type="button";
- close.addEventListener("click",()=>{calendar.remove();button.textContent="Calendario";});
- calendar.append(close);content.append(calendar);button.textContent="Cerrar calendario";
- calendar.scrollIntoView({behavior:"smooth",block:"start"});
+ document.getElementById("calendar-count").textContent=calendarFiltered.length+" cursos · mostrando "+(calendarFiltered.length?calendarOffset+1:0)+"–"+Math.min(calendarOffset+35,calendarFiltered.length);
+ document.getElementById("calendar-prev").disabled=calendarOffset===0;
+ document.getElementById("calendar-next").disabled=calendarOffset+35>=calendarFiltered.length;
+}
+async function openCalendars(){
+ hideMain();calendarPage.hidden=false;activateNav("Cursos");calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consultando catálogo de cursos..."));
+ window.scrollTo(0,0);
+ try{
+  const data=await loadCourses();
+  calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consulta de todos los cursos del catálogo ETOP. Los datos pueden tener desfase."));
+  const filters=make("div","calendar-filters");
+  const query=make("input","calendar-query");query.placeholder="Buscar NRC, curso o tutor";query.setAttribute("aria-label","Buscar cursos del calendario");
+  calendarPage.append(query);
+  const selects={};
+  for(const [label,key] of [["Estado","estado"],["Facultad","facultad"],["Tutor","tutor"],["Intake","intake"]]){
+   const values=[...new Set(data.map(c=>field(c,key)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
+   const control=optionSelect(label,values);filters.append(control.wrap);selects[key]=control.select;
+  }
+  calendarPage.append(filters,make("p","calendar-count",""));
+  calendarPage.lastChild.id="calendar-count";
+  const list=make("div","calendar-list");list.id="calendar-list";calendarPage.append(list);
+  const pager=make("div","calendar-pager");
+  const prev=make("button","","← Anteriores");prev.id="calendar-prev";
+  const next=make("button","","Siguientes →");next.id="calendar-next";
+  prev.addEventListener("click",()=>{calendarOffset=Math.max(0,calendarOffset-35);renderCalendarRows();});
+  next.addEventListener("click",()=>{calendarOffset+=35;renderCalendarRows();});
+  pager.append(prev,next);calendarPage.append(pager);
+  const apply=()=>{
+   const q=norm(query.value);
+   calendarFiltered=data.filter(c=>
+    (!q||["nrc","NRC_COD_CAL","nombre curso","NOMBRE_CURSO","tutor","codigo curso","codigo"].some(k=>norm(c[k]).includes(q)))&&
+    Object.entries(selects).every(([key,select])=>!select.value||field(c,key)===select.value)
+   ).sort((a,b)=>field(a,"fecha inicio","FECHA_INICIO").localeCompare(field(b,"fecha inicio","FECHA_INICIO")));
+   calendarOffset=0;renderCalendarRows();
+  };
+  query.addEventListener("input",apply);Object.values(selects).forEach(el=>el.addEventListener("change",apply));apply();
+ }catch(e){calendarPage.append(make("p","","No se pudo cargar el catálogo. Revisa la conexión y vuelve a intentar."));}
 }
 
 const norm = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
@@ -107,6 +148,6 @@ async function runSearch(){
 }
 document.getElementById("searchBtn").addEventListener("click",runSearch);
 search.addEventListener("keydown",e=>{if(e.key==="Enter")runSearch();});
-document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>{status.textContent=button.dataset.tool+": módulo pendiente de integración.";document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"center"});}));
-document.querySelectorAll("[data-nav]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b===button));status.textContent=button.dataset.nav==="Cursos"?"Escribe un NRC para consultar cursos.":button.dataset.nav+": sección en preparación.";document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"center"});}));
+document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.tool==="Calendarios"){openCalendars();return;}status.textContent=button.dataset.tool+": módulo pendiente de integración.";document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"center"});}));
+document.querySelectorAll("[data-nav]").forEach(button=>button.addEventListener("click",()=>{activateNav(button.dataset.nav);if(button.dataset.nav==="Cursos"){openCalendars();return;}showMain();status.textContent=button.dataset.nav==="Inicio"?"Busca un NRC para abrir su ficha.":button.dataset.nav+": sección en preparación.";window.scrollTo(0,0);}));
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
