@@ -37,9 +37,33 @@ function openCourse(c){
  follow.append(metrics,make("p","detail-caption","Indicadores pendientes de conexión institucional autenticada."));content.append(follow);
  const actions=make("section","detail-section");actions.append(make("h3","","Acciones del NRC"));
  const actionGrid=make("div","detail-actions");
- for(const label of ["Consultar nómina","Incidencias","Calendario","Reportes"]){const b=make("button","",label);b.type="button";b.disabled=true;b.title="Pendiente de integración segura";actionGrid.append(b);}
+ for(const label of ["Consultar nómina","Incidencias","Calendario","Reportes"]){
+ const b=make("button","",label);b.type="button";
+ if(label==="Calendario"){b.className="action-enabled";b.addEventListener("click",()=>showCalendar(c,content,b));}
+ else{b.disabled=true;b.title="Pendiente de integración segura";}
+ actionGrid.append(b);
+}
  actions.append(actionGrid,make("p","detail-caption","Las acciones se habilitarán cuando se validen los permisos de acceso."));content.append(actions);
  detail.hidden=false;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function showCalendar(c,content,button){
+ let existing=document.getElementById("mobile-calendar");
+ if(existing){existing.remove();button.textContent="Calendario";return;}
+ const calendar=make("section","detail-section calendar-section");calendar.id="mobile-calendar";
+ calendar.append(make("h3","","Calendario del curso"));
+ const dates=make("div","calendar-dates");
+ for(const [label,keys] of [["Inicio",["fecha inicio","FECHA_INICIO"]],["Término",["fecha fin","FECHA_FIN"]]]){
+  const item=make("div","calendar-date");
+  item.append(make("span","",label),make("strong","",field(c,...keys)||"No informado"));
+  dates.append(item);
+ }
+ calendar.append(dates);
+ calendar.append(make("p","detail-caption","Fechas obtenidas del catálogo ETOP. Consulta de solo lectura; pueden existir actualizaciones pendientes de publicación."));
+ const close=make("button","calendar-close","Cerrar calendario");close.type="button";
+ close.addEventListener("click",()=>{calendar.remove();button.textContent="Calendario";});
+ calendar.append(close);content.append(calendar);button.textContent="Cerrar calendario";
+ calendar.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 const norm = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
