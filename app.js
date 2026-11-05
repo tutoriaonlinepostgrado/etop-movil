@@ -38,15 +38,39 @@ function openCourse(c){
  const metrics=make("div","metric-grid");
  for(const label of ["Estudiantes","Sin ingreso","En riesgo"]){const m=make("div","metric-box");m.append(make("strong","","—"),make("span","",label));metrics.append(m);}
  follow.append(metrics,make("p","detail-caption","Indicadores pendientes de conexión institucional autenticada."));content.append(follow);
- const actions=make("section","detail-section");actions.append(make("h3","","Acciones del NRC"));
+ const actions=make("section","detail-section");actions.append(make("h3","","Accesos y herramientas del NRC"));
  const actionGrid=make("div","detail-actions");
- for(const label of ["Consultar nómina","Incidencias","Ver calendarios","Reportes"]){
- const b=make("button","",label);b.type="button";
- if(label==="Ver calendarios"){b.className="action-enabled";b.addEventListener("click",()=>openCalendars(c));}
- else{b.disabled=true;b.title="Pendiente de integración segura";}
- actionGrid.append(b);
-}
- actions.append(actionGrid,make("p","detail-caption","Las acciones se habilitarán cuando se validen los permisos de acceso."));content.append(actions);
+ const nrc=field(c,"nrc","NRC_COD_CAL");
+ const id=field(c,"id","ID");
+ const intake=field(c,"intake","INTAKE");
+ const baseSP="https://unabportal365.sharepoint.com/sites/actasynrc/Lists/NRC_TUTOR_ACTUAL/";
+ const sharepointCourse=id?baseSP+"DispForm.aspx?ID="+encodeURIComponent(id)+"&env=Embedded":"";
+ const sharepointIntake=intake?new URL("Vista_version.aspx",baseSP):null;
+ if(sharepointIntake){const p=sharepointIntake.searchParams;p.set("viewid","f4c009bb-0552-43a5-9718-9c1d37d8f98b");p.set("env","WebViewList");p.set("FilterField1","field_8");p.set("FilterValue1",intake);}
+ const students=nrc?new URL("https://unabportal365.sharepoint.com/sites/actasynrc/Lists/BASESEMAFORO_20/Todosloselementos.aspx"):null;
+ if(students){students.searchParams.set("FilterField1","NRC_COD_CAL_FILTRO");students.searchParams.set("FilterValue1",nrc);students.searchParams.set("FilterType1","Text");students.searchParams.set("viewid","1f85f1c7-089f-47d6-8635-a2cc761fecc3");students.searchParams.set("env","Embedded");}
+ const pieces=nrc.split("_");const period=pieces.at(-1),crn=pieces[0];
+ const integration=crn&&period?new URL("https://lms.unab.cl/int-canvas/"):null;
+ if(integration){for(const [k,v] of Object.entries({term_code:period,periodo:period,nrc:crn,nrc_code:crn,crn,NRC:crn}))integration.searchParams.set(k,v);}
+ const editor=id?new URL("https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/8d0fd473-95da-45be-8063-4cfebbbd6624"):null;
+ if(editor){editor.searchParams.set("tenantId","8fbed393-d03b-49f8-be79-cd5e1f590fb2");editor.searchParams.set("ids",id);}
+ const links=[
+ ["Ver calendarios","",()=>openCalendars(c)],
+ ["Curso en SharePoint",sharepointCourse],
+ ["Cursos del intake",sharepointIntake?.href],
+ ["Base Semáforo",students?.href],
+ ["Web de Integración",integration?.href],
+ ["Editar curso · Power Apps",editor?.href],
+ ["Incidencias",nrc?"https://tutoriaonlinepostgrado.github.io/sitiowebetop/incidencias.html?nrc="+encodeURIComponent(nrc):""]
+ ];
+ for(const [label,url,action] of links){
+  let b;
+  if(action){b=make("button","action-enabled",label);b.type="button";b.addEventListener("click",action);}
+  else if(url){b=make("a","action-link",label+" ↗");b.href=url;b.target="_blank";b.rel="noopener noreferrer";}
+  else{b=make("button","",label);b.disabled=true;b.title="No hay identificador o dato suficiente para construir el acceso";}
+  actionGrid.append(b);
+ }
+ actions.append(actionGrid,make("p","detail-caption","Los accesos institucionales requieren permisos Microsoft 365. Las vistas y aplicaciones externas se abren aparte."));content.append(actions);
  detail.hidden=false;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);window.scrollTo({top:0,behavior:"smooth"});
 }
 
