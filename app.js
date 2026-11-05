@@ -183,6 +183,6 @@ async function runSearch(){
 }
 document.getElementById("searchBtn").addEventListener("click",runSearch);
 search.addEventListener("keydown",e=>{if(e.key==="Enter")runSearch();});
-document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.tool==="Calendarios"){openCalendars();return;}status.textContent=button.dataset.tool+": módulo pendiente de integración.";document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"center"});}));
+document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.tool==="Calendarios"){openCalendars();return;}if(/herramientas/i.test(button.dataset.tool)){window.location.href="./herramientas.html";return;}status.textContent=button.dataset.tool+": módulo pendiente de integración.";document.querySelector(".panel").scrollIntoView({behavior:"smooth",block:"center"});}));
 document.querySelectorAll("[data-nav]").forEach(button=>button.addEventListener("click",()=>{activateNav(button.dataset.nav);if(button.dataset.nav==="Cursos"){openCalendars();return;}showMain();status.textContent=button.dataset.nav==="Inicio"?"Busca un NRC para abrir su ficha.":button.dataset.nav+": sección en preparación.";window.scrollTo(0,0);}));
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
