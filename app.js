@@ -42,7 +42,7 @@ function openCourse(c){
  const actionGrid=make("div","detail-actions");
  for(const label of ["Consultar nómina","Incidencias","Ver calendarios","Reportes"]){
  const b=make("button","",label);b.type="button";
- if(label==="Ver calendarios"){b.className="action-enabled";b.addEventListener("click",()=>openCalendars());}
+ if(label==="Ver calendarios"){b.className="action-enabled";b.addEventListener("click",()=>openCalendars(c));}
  else{b.disabled=true;b.title="Pendiente de integración segura";}
  actionGrid.append(b);
 }
@@ -72,12 +72,22 @@ function renderCalendarRows(){
  document.getElementById("calendar-prev").disabled=calendarOffset===0;
  document.getElementById("calendar-next").disabled=calendarOffset+35>=calendarFiltered.length;
 }
-async function openCalendars(){
+async function openCalendars(selectedCourse=null){
  hideMain();calendarPage.hidden=false;activateNav("Cursos");calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consultando catálogo de cursos..."));
  window.scrollTo(0,0);
  try{
-  const data=await loadCourses();
-  calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consulta de todos los cursos del catálogo ETOP. Los datos pueden tener desfase."));
+  const allData=await loadCourses();
+  const intake=selectedCourse?field(selectedCourse,"intake","INTAKE"):"";
+  if(selectedCourse&&!intake){
+   calendarPage.replaceChildren(make("h2","","Calendario de la versión"),make("p","detail-caption","Este NRC no tiene intake o versión informada en el catálogo; no es posible identificar sus cursos relacionados."));
+   const back=make("button","calendar-back","← Volver a la ficha");back.addEventListener("click",()=>openCourse(selectedCourse));calendarPage.append(back);return;
+  }
+  const data=intake?allData.filter(c=>norm(field(c,"intake","INTAKE"))===norm(intake)):allData;
+  calendarPage.replaceChildren(make("h2","",selectedCourse?"Calendario de la versión":"Calendarios ETOP"),make("p","detail-caption",selectedCourse?"Cursos del mismo intake o versión que el NRC seleccionado.":"Consulta de todos los cursos del catálogo ETOP. Los datos pueden tener desfase."));
+  if(selectedCourse){
+   const back=make("button","calendar-back","← Volver a la ficha");back.addEventListener("click",()=>openCourse(selectedCourse));calendarPage.append(back);
+   calendarPage.append(make("p","calendar-scope","Versión: "+intake));
+  }
   const filters=make("div","calendar-filters");
   const query=make("input","calendar-query");query.placeholder="Buscar NRC, curso o tutor";query.setAttribute("aria-label","Buscar cursos del calendario");
   calendarPage.append(query);
@@ -86,6 +96,7 @@ async function openCalendars(){
    const values=[...new Set(data.map(c=>field(c,key)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
    const control=optionSelect(label,values);filters.append(control.wrap);selects[key]=control.select;
   }
+  if(selectedCourse){selects.intake.value=intake;selects.intake.disabled=true;}
   calendarPage.append(filters,make("p","calendar-count",""));
   calendarPage.lastChild.id="calendar-count";
   const list=make("div","calendar-list");list.id="calendar-list";calendarPage.append(list);
