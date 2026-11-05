@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramientas ETOP · Móvil</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg: #1c2430;
+    --panel: #202b38;
+    --panel-2: #223246;
+    --line: #f6c128;
+    --line-dim: rgba(246,193,40,0.25);
+    --text: #ffffff;
+    --muted: #c5d0dd;
+    --soft: #95a3b8;
+    --ok-bg: #1d3a35;
+    --ok-text: #d6ffe8;
+    --err-bg: #3a1d1d;
+    --err-text: #ffd6d6;
+    --input-bg: #eef2f7;
+    --input-text: #17202d;
+    --radius: 10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 3rem;
+  }
+
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 2rem 2rem 1rem; border-bottom: 1px solid var(--line-dim); gap: 1rem;
+  }
+  .header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; }
+  .header p { color: var(--muted); font-size: 0.95rem; margin-top: 0.25rem; }
+  .btn-clear {
+    background: transparent; border: 1px solid var(--line); color: var(--text);
+    font-family: inherit; font-weight: 700; font-size: 0.82rem; padding: 0.45rem 1rem;
+    border-radius: var(--radius); cursor: pointer; white-space: nowrap; transition: background 0.15s; flex-shrink: 0;
+  }
+  .btn-clear:hover { background: rgba(246,193,40,0.1); }
+
+  .tabs-nav {
+    display: flex; gap: 0; padding: 0 2rem; border-bottom: 1px solid var(--line-dim); overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-family: inherit; font-weight: 700; font-size: 0.88rem;
+    padding: 0.9rem 1.1rem 0.75rem; cursor: pointer; white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--line); }
+  .retired-tool { display:none !important; }
+
+  .tab-panel { display: none; padding: 1.8rem 2rem; }
+  .tab-panel.active { display: block; }
+
+  .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.3rem; }
+  .section-sub { color: var(--muted); font-size: 0.93rem; margin-bottom: 1.4rem; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-grid.col3 { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 700px) { .form-grid, .form-grid.col3 { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text);
+  }
+
+  input[type="text"], input[type="date"], input[type="time"], input[type="url"], textarea, select {
+    background: var(--input-bg); color: var(--input-text); border: 1px solid rgba(246,193,40,0.8);
+    border-radius: 8px; padding: 0.5rem 0.75rem; font-family: inherit; font-size: 0.9rem;
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--line); box-shadow: 0 0 0 2px rgba(246,193,40,0.15);
+  }
+  textarea { resize: vertical; min-height: 180px; }
+
+  .radio-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
+  .radio-option {
+    display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+    color: var(--muted); font-size: 0.9rem; font-weight: 600;
+    padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid transparent; transition: all 0.15s;
+  }
+  .radio-option:hover { background: var(--panel-2); color: var(--text); }
+  .radio-option.selected { background: var(--panel-2); color: var(--text); border-color: var(--line-dim); }
+  .radio-option input { display: none; }
+  .radio-dot {
+    width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--soft);
+    flex-shrink: 0; transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  .radio-option.selected .radio-dot { border-color: var(--line); background: var(--line); box-shadow: 0 0 0 3px rgba(246,193,40,0.2); }
+
+  .file-drop {
+    border: 1px dashed rgba(246,193,40,0.5); border-radius: 10px; padding: 1.2rem;
+    text-align: center; cursor: pointer; color: var(--muted); font-size: 0.85rem;
+    transition: all 0.15s; background: transparent; position: relative;
+  }
+  .file-drop:hover { border-color: var(--line); background: var(--panel-2); color: var(--text); }
+  .file-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; background: transparent; border: none; }
+  .file-drop .file-name { margin-top: 0.4rem; font-size: 0.8rem; color: var(--line); font-family: 'IBM Plex Mono', monospace; word-break: break-all; }
+
+  .btn {
+    background: transparent; border: 1px solid var(--line); color: var(--text);
+    font-family: inherit; font-weight: 700; font-size: 0.88rem; padding: 0.5rem 1.2rem;
+    border-radius: var(--radius); cursor: pointer; transition: background 0.15s;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+  }
+  .btn:hover { background: rgba(246,193,40,0.1); }
+  .btn.primary { background: rgba(246,193,40,0.14); }
+  .btn.primary:hover { background: rgba(246,193,40,0.22); }
+  .btn.danger { background: rgba(218,55,55,0.14); border-color: #da3737; }
+  .btn.danger:hover { background: rgba(218,55,55,0.22); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+
+  .btn-delete {
+    background: transparent; border: 1px solid #da3737; color: #da3737;
+    font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;
+    cursor: pointer; transition: all 0.15s; font-weight: 700;
+  }
+  .btn-delete:hover { background: rgba(218,55,55,0.2); }
+
+  .alert { border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.9rem; margin-top: 0.75rem; }
+  .alert.success { background: var(--ok-bg); color: var(--ok-text); }
+  .alert.error { background: var(--err-bg); color: var(--err-text); }
+  .alert.info { background: var(--panel-2); color: var(--muted); }
+
+  .helper { background: var(--panel-2); border-radius: 10px; padding: 0.8rem 1rem; color: var(--muted); font-size: 0.88rem; margin-bottom: 1rem; }
+
+  .table-wrap { overflow: auto; max-height: 340px; border-radius: 10px; margin-top: 1rem; border: 1px solid var(--line-dim); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; }
+  th { background: var(--panel-2); color: var(--line); font-weight: 700; text-align: left; padding: 0.5rem 0.75rem; position: sticky; top: 0; white-space: nowrap; border-bottom: 1px solid var(--line-dim); }
+  td { padding: 0.4rem 0.75rem; color: var(--muted); border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--panel-2); color: var(--text); }
+
+  .divider { border: none; border-top: 1px solid var(--line-dim); margin: 1.5rem 0; }
+  .dynamic-section { display: none; }
+  .dynamic-section.visible { display: block; }
+
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(246,193,40,0.3); border-top-color: var(--line); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .badge { display: inline-block; background: rgba(246,193,40,0.15); color: var(--line); border-radius: 6px; padding: 0.15rem 0.55rem; font-size: 0.75rem; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+
+  .mt1 { margin-top: 1rem; }
+  .mt05 { margin-top: 0.5rem; }
+
+  /* ═══ TAB 5: CARPETAS CREADAS ════════════════════════════════════════════ */
+  .carpetas-layout {
+    display: grid; grid-template-columns: 370px 1fr; gap: 1.5rem; align-items: start;
+  }
+  @media (max-width: 900px) { .carpetas-layout { grid-template-columns: 1fr; } }
+
+  .c-form-panel {
+    background: var(--panel); border: 1px solid var(--line-dim);
+    border-radius: var(--radius); padding: 1.4rem;
+    display: flex; flex-direction: column; gap: 1.2rem;
+  }
+
+  .c-section-lbl {
+    font-size: 0.67rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--line);
+    padding-bottom: 0.45rem; border-bottom: 1px solid var(--line-dim);
+    margin-bottom: 0.1rem; display: block;
+  }
+
+  .c-carpeta-item {
+    background: var(--panel-2); border: 1px solid var(--line-dim);
+    border-radius: 8px; padding: 0.85rem 1rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    animation: cFade .2s ease;
+  }
+  @keyframes cFade { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+  .c-item-hdr {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.1rem;
+  }
+  .c-num-badge {
+    font-size: 0.67rem; font-weight: 800; font-family: 'IBM Plex Mono', monospace;
+    color: var(--line); background: rgba(246,193,40,0.1);
+    border: 1px solid rgba(246,193,40,0.28); padding: 0.12rem 0.6rem; border-radius: 20px;
+  }
+  .c-btn-rm {
+    background: none; border: 1px solid rgba(218,55,55,0.35); color: #da3737;
+    font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.5rem; border-radius: 5px;
+    cursor: pointer; transition: background .15s; font-family: inherit;
+  }
+  .c-btn-rm:hover { background: rgba(218,55,55,0.15); }
+
+  .c-btn-add {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;
+    padding: 0.58rem; background: transparent; border: 1px dashed rgba(246,193,40,0.35);
+    border-radius: 8px; color: var(--soft); font-family: inherit; font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; transition: all .15s; margin-top: 0.4rem;
+  }
+  .c-btn-add:hover { border-color: var(--line); color: var(--line); background: rgba(246,193,40,0.06); }
+
+  .c-preview-panel {
+    background: var(--panel); border: 1px solid var(--line-dim);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .c-preview-bar {
+    background: var(--panel-2); border-bottom: 1px solid var(--line-dim);
+    padding: 0.7rem 1.2rem; display: flex; align-items: center;
+    justify-content: space-between; gap: 0.7rem; flex-wrap: wrap;
+  }
+  .c-preview-bar-title { font-size: 0.82rem; font-weight: 700; }
+  .c-preview-bar-sub { font-size: 0.7rem; color: var(--soft); margin-top: 1px; }
+
+  .c-tabs {
+    display: flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 3px;
+  }
+  .c-tab-btn {
+    border: none; background: transparent; padding: 4px 11px; font-size: 0.74rem; font-weight: 700;
+    border-radius: 4px; cursor: pointer; color: var(--muted); font-family: inherit; transition: all .15s;
+  }
+  .c-tab-btn.active { background: var(--panel-2); color: var(--line); }
+
+  .c-btn-copy {
+    background: rgba(246,193,40,0.12); border: 1px solid var(--line); color: var(--text);
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.38rem 0.85rem;
+    border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+    transition: background .15s; white-space: nowrap;
+  }
+  .c-btn-copy:hover { background: rgba(246,193,40,0.2); }
+  .c-btn-copy.copied { background: rgba(29,58,53,0.8); border-color: #2e7d32; color: #d6ffe8; }
+
+  .c-preview-body { padding: 1.4rem; }
+  .c-email-box {
+    background: #fff; border-radius: 9px; overflow: hidden;
+    box-shadow: 0 4px 22px rgba(0,0,0,.38);
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .c-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.7rem; padding: 3.2rem 2rem; color: var(--soft); text-align: center;
+  }
+  .c-empty .ce-icon { font-size: 2.8rem; opacity: .32; }
+  .c-empty h3 { font-size: 0.95rem; font-weight: 700; color: var(--muted); }
+  .c-empty p { font-size: 0.8rem; max-width: 230px; line-height: 1.5; }
+
+  .c-code-area { padding: 1.4rem; background: var(--panel); display: none; }
+  .c-code-area pre {
+    background: #111820; color: #a8d8ea; padding: 1rem 1.1rem; border-radius: 8px;
+    font-size: 0.71rem; line-height: 1.55; white-space: pre-wrap; word-break: break-all;
+    font-family: 'IBM Plex Mono', monospace; max-height: 480px; overflow-y: auto;
+    border: 1px solid var(--line-dim);
+  }
+
+  .etop-toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--ok-bg); color: var(--ok-text); border: 1px solid rgba(46,125,50,0.5);
+    padding: 0.65rem 1.1rem; border-radius: 9px; font-size: 0.85rem; font-weight: 700;
+    font-family: 'IBM Plex Sans', sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    display: flex; align-items: center; gap: 0.5rem;
+    opacity: 0; transform: translateY(8px); transition: opacity .25s, transform .25s;
+    pointer-events: none; z-index: 999;
+  }
+  .etop-toast.show { opacity: 1; transform: translateY(0); }
+</style>
+<style id="etop-mobile-adaptation">
+:root{--bg:#f4f7fb;--panel:#fff;--panel-2:#e9f1fa;--line:#1c5689;--line-dim:#d9e5f0;--text:#172b41;--muted:#50647b;--soft:#61748a;--ok-bg:#e2f6e9;--ok-text:#155b36;--err-bg:#ffeded;--err-text:#8a2424;--input-bg:#fff;--input-text:#172b41}
+html,body{width:100%;max-width:100%;overflow-x:hidden}body{padding-bottom:35px}
+.header{padding:16px 16px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff}
+.header h1{font-size:1.18rem;line-height:1.25}.header p{font-size:.8rem}.btn-clear{font-size:.75rem;padding:8px}
+.mobile-return{display:inline-flex;margin:12px 16px 0;padding:10px 13px;border-radius:10px;background:#e2effb;color:#164d81;text-decoration:none;font-weight:700;font-size:13px}
+.tabs-nav{padding:0 9px;gap:7px;position:sticky;top:0;z-index:15;background:#fff;overflow-x:auto;scrollbar-width:thin}
+.tab-btn{font-size:.8rem;padding:13px 10px;line-height:1.2}.tab-panel{padding:16px 13px}.section-title{font-size:1.15rem;line-height:1.35}.section-sub{font-size:.82rem;line-height:1.45}
+.form-grid,.form-grid.col3,.carpetas-layout{grid-template-columns:minmax(0,1fr)!important}.form-group,.form-group.full{min-width:0}
+input,select,textarea{font-size:16px!important;max-width:100%}textarea{min-height:130px}
+.btn-row{gap:9px}.btn-row .btn{min-height:43px;justify-content:center}.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}table{min-width:570px}
+.helper,.alert{line-height:1.5}.file-drop{min-height:80px}
+@media(max-width:700px){.header{align-items:flex-start}.tab-panel{padding:14px 12px}.btn{font-size:.82rem;white-space:normal;text-align:center}.header .btn-clear{margin-left:auto}}
+</style></head>
+<body>
+
+<a class="mobile-return" href="./index.html">← Volver a ETOP Móvil</a>
+<div class="header">
+  <div>
+    <h1>⚡ Herramientas ETOP Móvil</h1>
+    <p>Selecciona la herramienta que necesitas usar en las pestañas de abajo.</p>
+  </div>
+  <button class="btn-clear" onclick="clearAll()">🧹 Limpiar Todo</button>
+</div>
+
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="switchTab(0, this)">📋 Carga de Estudiantes</button>
+  <button class="tab-btn" onclick="switchTab(3, this)">📅 Formateador Calendarios</button>
+  <button class="tab-btn" onclick="switchTab(4, this)">📂 Notificación Carpetas Creadas</button>
+</div>
+
+<!-- TAB 1: CARGA UNIVERSAL DE ESTUDIANTES -->
+<div class="tab-panel active" id="tab0">
+  <div class="section-title">🧪 PRUEBA — Carga Universal de Estudiantes</div><div class="alert info">Entorno de pruebas. No utilices el botón de carga a SharePoint en los métodos antiguos con datos reales. En el modo de carga masiva el envío está bloqueado.</div>
+  <div class="section-sub">Sube la nómina en su formato original. La herramienta detecta automáticamente la estructura, normaliza los estudiantes y prepara la carga a SharePoint.</div>
+
+  <label>Selecciona el método de entrada:</label>
+  <div class="radio-group mt05" id="tab1-radio">
+    <label class="radio-option selected" onclick="selectRadio(this, 'tab1-mode', 'universal')">
+      <input type="radio" name="tab1-mode" value="universal" checked>
+      <span class="radio-dot"></span>
+      📂 Archivo universal — Excel / CSV (recomendado)
+    </label>
+    <label class="radio-option" onclick="selectRadio(this, 'tab1-mode', 'manual')">
+      <input type="radio" name="tab1-mode" value="manual">
+      <span class="radio-dot"></span>
+      🌐 CSV manual de curso / Canvas (modo acumulativo)
+    </label>
+    <label class="radio-option" onclick="selectRadio(this, 'tab1-mode', 'texto')">
+      <input type="radio" name="tab1-mode" value="texto">
+      <span class="radio-dot"></span>
+      📝 Pegar texto directamente desde la web
+    </label>
+    <label class="radio-option" onclick="selectRadio(this, 'tab1-mode', 'version')">
+      <input type="radio" name="tab1-mode" value="version">
+      <span class="radio-dot"></span>
+      🗂️ Carga masiva por intake / versión
+    </label>
+  </div>
+
+  <div id="t1-diario" class="dynamic-section visible">
+    <div class="helper">💡 <strong>Autodetección:</strong> admite Sistema Diario, nómina de Alumno Potencial y archivos genéricos con RUT/ID, nombre y correo. Si el archivo no trae curso/NRC, se habilitará un buscador desde <strong>nrcs.json</strong>. Los cursos <strong>SEMIPRES</strong> se excluyen automáticamente, excepto <strong>MBAES</strong>, que sí mantiene seguimiento. Además, si un NRC no existe en <strong>nrcs.json</strong>, su registro también se omite.</div>
+    <div class="form-grid col3">
+      <div class="form-group"><label>📅 Filtrar fecha de inicio <span style="font-weight:400;text-transform:none;color:var(--soft);">(opcional)</span></label><input type="date" id="t1-fecha" /></div>
+      <div class="form-group"><label>🔍 Filtrar NRC_COD <span style="font-weight:400;text-transform:none;color:var(--soft);">(opcional)</span></label><input type="text" id="t1-nrcs" placeholder="Ej: 2239_MSP007" /></div>
+    </div>
+    <div class="form-group mt1">
+      <label>📥 Nómina(s) original(es) — Excel / CSV</label>
+      <div class="file-drop" id="drop1">
+        <input type="file" accept=".xlsx,.xls,.csv" multiple onchange="handleFiles(this, 'drop1', 't1-files'); t1ResetCourseSelection();" />
+        📂 Haz clic o arrastra tus archivos aquí
+        <div class="file-name" id="drop1-names"></div>
+      </div>
+    </div>
+
+    <div id="t1-course-box" class="dynamic-section mt1" style="background:var(--panel-2);border:1px solid var(--line-dim);border-radius:10px;padding:1rem;">
+      <div class="helper" style="margin-bottom:0.75rem;">⚠️ La nómina no contiene información suficiente del curso. Selecciona el NRC al que pertenecen estos estudiantes.</div>
+      <div class="form-group">
+        <label>BUSCAR CURSO / NRC</label>
+        <input type="text" id="t1-course-search" placeholder="Escribe NRC, código, nombre de curso, intake o tutor..." oninput="t1BuscarCurso()" autocomplete="off" />
+        <div id="t1-course-dropdown" style="display:none;position:relative;z-index:70;">
+          <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;max-height:260px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+            <div id="t1-course-options"></div>
+          </div>
+        </div>
+      </div>
+      <div id="t1-course-selected" class="alert info" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div id="t1-version" class="dynamic-section">
+    <div class="helper">Carga provisional por versión ante indisponibilidad de Banner. Se reutiliza la detección de formatos del modo universal. Seleccione explícitamente los NRC de destino y revise la vista previa antes de enviar. No representa una confirmación de matrícula oficial.</div>
+    <div class="form-grid">
+      <div class="form-group"><label>🔎 BUSCAR INTAKE / VERSIÓN</label>
+        <input type="text" id="tv-search" list="tv-intakes" oninput="tvRenderCursos()" placeholder="Buscar por programa, intake o versión">
+        <datalist id="tv-intakes"></datalist>
+      </div>
+      <div class="form-group"><label>ORIGEN DE NÓMINA</label>
+        <select id="tv-origen"><option value="Provisional - Coordinación">Provisional — Coordinación</option><option value="Oficial - Banner">Oficial — Banner</option><option value="Otro origen verificado">Otro origen verificado</option></select>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn" type="button" onclick="tvMarcar(true)">☑ Seleccionar cursos visibles</button><button class="btn" type="button" onclick="tvMarcar(false)">☐ Desmarcar todos</button></div>
+    <div id="tv-cursos" class="table-wrap" style="max-height:300px;overflow:auto;"><div class="alert info">Busque un intake para mostrar sus cursos.</div></div>
+    <div class="form-group mt1"><label>📥 NÓMINAS ORIGINALES — EXCEL / CSV (SE ACEPTAN VARIOS ARCHIVOS)</label><div class="file-drop"><input id="tv-files" type="file" multiple accept=".xlsx,.xls,.csv" onchange="tvArchivoCambiado()">📂 Seleccionar nóminas<div id="tv-file-name" class="file-name"></div></div></div>
+    <div class="form-group mt1"><label>O PEGAR NÓMINA EN TEXTO (SI NO SE SUBEN ARCHIVOS)</label><textarea id="tv-text" placeholder="Pegue aquí datos desde Excel o la web con encabezados, RUT, nombre y correo."></textarea></div>
+    <div class="helper">La selección es por NRC, no por asignatura. Los cursos SEMIPRES se excluyen salvo MBAES. La asignación masiva no garantiza que cada estudiante tenga matrícula oficial en todos los cursos: debe validarla el coordinador.</div>
+    <div id="tv-coverage" class="alert info">Cobertura de la carga actual: seleccione una versión.</div>
+  </div>
+
+  <div id="t1-manual" class="dynamic-section">
+    <div class="helper">💡 <strong>Modo acumulativo:</strong> conserva el funcionamiento anterior para CSV de curso. Completa NRC_COD y fecha, procesa y repite para otros cursos.</div>
+    <div class="form-grid">
+      <div class="form-group"><label>🔖 NRC_COD (ej: 2239_MSP007)</label><input type="text" id="t1m-nrccod" placeholder="2239_MSP007" /></div>
+      <div class="form-group"><label>📅 FECHA INICIO</label><input type="date" id="t1m-fecha" /></div>
+    </div>
+    <div class="form-group mt1">
+      <label>📥 Archivo CSV del curso</label>
+      <div class="file-drop" id="drop1m">
+        <input type="file" accept=".csv" onchange="handleFiles(this, 'drop1m', 't1m-files')" />
+        📂 Haz clic o arrastra tu archivo CSV aquí
+        <div class="file-name" id="drop1m-names"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="t1-texto" class="dynamic-section">
+    <div class="helper">💡 Ve a la web de inscripciones, selecciona el contenido y pégalo aquí. Este modo conserva el parser de la versión anterior.</div>
+    <div class="form-group"><label>📋 Pega aquí los datos de la web:</label><textarea id="t1-rawtext" placeholder="Pega aquí el texto copiado de la web de Inscripciones de Curso..."></textarea></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn primary" onclick="processTab1()">⚡ Procesar nómina</button>
+    <button class="btn danger" onclick="clearAccumulated()" id="btn-clear-accum" style="display:none">🗑️ Limpiar Registros Acumulados</button>
+  </div>
+  <div id="t1-result"></div>
+  <div id="t1-actions" class="btn-row" style="display:none;">
+    <button class="btn" onclick="t1DescargarProcesados()">📥 Descargar Excel</button>
+    <button class="btn primary" onclick="t1EnviarDirectoSharePoint()">🚀 Cargar a SharePoint</button>
+  </div>
+  <div id="t1-sp-result"></div>
+</div>
+
+<!-- TAB 2: CORREOS BIENVENIDA -->
+<div class="retired-tool" id="tab1" aria-hidden="true">
+  <div class="section-title">Generador de Base para Correos de Bienvenida</div>
+  <div class="section-sub">Sube la nómina original y completa los datos de la inducción.</div>
+  <div class="form-group" style="max-width:600px">
+    <label>📥 Sube la nómina original</label>
+    <div class="file-drop" id="drop2">
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFiles(this, 'drop2', 't2-file')" />
+      📂 Haz clic o arrastra el archivo aquí
+      <div class="file-name" id="drop2-names"></div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div style="font-weight:700; margin-bottom:1rem;">2. Ingresa los datos de la Inducción</div>
+  <div class="helper" id="t2-nrcs-status">⏳ Cargando cursos desde nrcs.json...</div>
+  <div class="form-grid">
+    <!-- TUTOR -->
+    <div class="form-group">
+      <label>NOMBRE TUTOR</label>
+      <select id="t2-tutor-sel" onchange="t2AutoTutor()">
+        <option value="">— Selecciona tutor —</option>
+        <option value="HANS NOVAKOVIC">HANS NOVAKOVIC</option>
+        <option value="KIMBERLY JORQUERA">KIMBERLY JORQUERA</option>
+        <option value="MARTA GONZALEZ">MARTA GONZALEZ</option>
+        <option value="DANITZA JANSEN">DANITZA JANSEN</option>
+        <option value="SYLVIA VALENZUELA">SYLVIA VALENZUELA</option>
+        <option value="PAULA PARDO">PAULA PARDO</option>
+        <option value="MARIA FERNANDA GONZALEZ">MARIA FERNANDA GONZALEZ</option>
+        <option value="BARBARA ROJAS">BARBARA ROJAS</option>
+        <option value="CONSTANZA CONTRERAS">CONSTANZA CONTRERAS</option>
+        <option value="CARLA PEÑA">CARLA PEÑA</option>
+        <option value="NOEMI PAZ">NOEMI PAZ</option>
+        <option value="ORIETTA CORTES">ORIETTA CORTES</option>
+        <option value="HECTOR TAPIA">HECTOR TAPIA</option>
+        <option value="CONSUELO PARGA">CONSUELO PARGA</option>
+        <option value="FRANCISCA INDA">FRANCISCA INDA</option>
+        <option value="JAVIERA ROJAS">JAVIERA ROJAS</option>
+        <option value="ALYSON HERNANDEZ">ALYSON HERNANDEZ</option>
+        <option value="POR DEFINIR">POR DEFINIR</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>CORREO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
+      <input type="text" id="t2-tc" placeholder="Se autocompleta al elegir tutor" />
+    </div>
+    <div class="form-group">
+      <label>NOMBRE COMPLETO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
+      <input type="text" id="t2-tn" placeholder="Se autocompleta al elegir tutor" />
+    </div>
+    <div class="form-group">
+      <label>ANEXO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
+      <input type="text" id="t2-ta" placeholder="Se autocompleta al elegir tutor" />
+    </div>
+    <div class="form-group"><label>NOMBRE DE PROGRAMA</label><input type="text" id="t2-pr" placeholder="Nombre del programa" /></div>
+    <!-- BUSCADOR NRC INDUCCION -->
+    <div class="form-group">
+      <label>BUSCAR NRC INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta fechas)</span></label>
+      <input type="text" id="t2-nrc-search" placeholder="Escribe NRC, código o tutor..." oninput="t2BuscarNrc()" autocomplete="off" />
+      <div id="t2-nrc-dropdown" style="display:none;position:relative;z-index:60;">
+        <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+          <div id="t2-nrc-options"></div>
+        </div>
+      </div>
+      <input type="hidden" id="t2-ni" />
+    </div>
+    <div class="form-group"><label>NRC Y NOMBRE DE CURSO INDUCC <span style="color:#95a3b8;font-weight:400;text-transform:none;">(editable)</span></label><input type="text" id="t2-ni-display" placeholder="Ej: 12345 - Inducción Postgrado" oninput="document.getElementById('t2-ni').value=this.value" /></div>
+    <div class="form-group"><label>NOMBRE PRIMER CURSO</label><input type="text" id="t2-c1" placeholder="Nombre del primer curso" /></div>
+    <div class="form-group"><label>NOMBRE SEGUNDO CURSO (opcional)</label><input type="text" id="t2-c2" placeholder="Opcional" /></div>
+    <div class="form-group">
+      <label>FECHA INICIO INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
+      <input type="date" id="t2-fi" />
+    </div>
+    <div class="form-group">
+      <label>FECHA TERMINO INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
+      <input type="date" id="t2-ff" />
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn primary" onclick="processTab2()">🪄 Construir Plantilla Exacta</button></div>
+  <div id="t2-result"></div>
+  <div id="t2-actions" style="display:none" class="btn-row">
+    <button class="btn" onclick="downloadTab2()">📥 Descargar Excel</button>
+    <button class="btn primary" onclick="sendToSharePoint()">📨 Enviar a SharePoint</button>
+  </div>
+  <div id="t2-sp-result"></div>
+  <div id="t2-paso3" style="display:none; margin-top:1.2rem;">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+      <div style="background:var(--line);color:#17202d;font-weight:800;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;flex-shrink:0;">PASO 3</div>
+      <div style="font-weight:700; font-size:1rem;">Enviar correos de bienvenida</div>
+    </div>
+    <div class="helper">Los datos ya están en SharePoint. Abre la app para disparar el envío.</div>
+    <button class="btn primary" style="font-size:0.95rem; padding:0.6rem 1.4rem;" onclick="window.open('https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/ba7dd4d1-b423-429c-b438-45dc98c1d1c5?tenantId=8fbed393-d03b-49f8-be79-cd5e1f590fb2&hint=dcd088c4-550e-4bd6-8ccb-e2857889ac7e&sourcetime=1774392012028','_blank')">
+      📧 Abrir app — Enviar correos de bienvenida
+    </button>
+  </div>
+</div>
+
+<!-- TAB 3: INVITACIÓN SINCRÓNICA -->
+<div class="retired-tool" id="tab2" aria-hidden="true">
+  <div class="section-title">Envío Invitación Sesión Sincrónica</div>
+  <div class="section-sub">Sube la nómina original para generar las invitaciones.</div>
+  <div class="form-group" style="max-width:600px">
+    <label>📥 Sube la nómina original para invitación</label>
+    <div class="file-drop" id="drop3">
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFiles(this, 'drop3', 't3-file')" />
+      📂 Haz clic o arrastra el archivo aquí
+      <div class="file-name" id="drop3-names"></div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div style="font-weight:700; margin-bottom:1rem;">2. Ingresa los datos de la sesión</div>
+  <div class="form-grid">
+    <!-- BUSCADOR NRC INDUCCION -->
+    <div class="form-group full">
+      <label>BUSCAR CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta tutor y fecha)</span></label>
+      <input type="text" id="t3-nrc-search" placeholder="Escribe NRC, código o tutor..." oninput="t3BuscarNrc()" autocomplete="off" />
+      <div id="t3-nrc-dropdown" style="display:none;position:relative;z-index:60;">
+        <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+          <div id="t3-nrc-options"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label>CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(editable)</span></label><input type="text" id="t3-curso" placeholder="Se autocompleta al buscar NRC" /></div>
+    <div class="form-group"><label>FECHA INICIO CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="date" id="t3-fechainicio" /></div>
+    <div class="form-group"><label>NOMBRE TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="text" id="t3-nombretutor" placeholder="Se autocompleta al buscar NRC" /></div>
+    <div class="form-group"><label>CORREO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="text" id="t3-correotutor" placeholder="Se autocompleta al buscar NRC" /></div>
+    <div class="form-group"><label>LINK SESION SINCRONICA</label><input type="text" id="t3-link" placeholder="https://..." /></div>
+    <div class="form-group"><label>FECHA SESION SINCRONICA</label><input type="date" id="t3-fechasesion" /></div>
+    <div class="form-group"><label>HORA SESION SINCRONICA</label><input type="time" id="t3-hora" /></div>
+    <input type="hidden" id="t3-fechacal" value="" />
+  </div>
+  <div class="btn-row"><button class="btn primary" onclick="processTab3()">🪄 Construir Invitaciones</button></div>
+  <div id="t3-result"></div>
+  <div id="t3-actions" style="display:none" class="btn-row">
+    <button class="btn" onclick="downloadTab3()">📥 Descargar Excel Invitación</button>
+    <button class="btn primary" onclick="sendToSharePointSync()">📨 Enviar a SharePoint</button>
+  </div>
+  <div id="t3-sp-result"></div>
+  <div id="t3-paso3" style="display:none; margin-top:1.2rem;">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+      <div style="background:var(--line);color:#17202d;font-weight:800;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;flex-shrink:0;">PASO 3</div>
+      <div style="font-weight:700; font-size:1rem;">Enviar invitaciones sincónicas</div>
+    </div>
+    <div class="helper">Los datos ya están en SharePoint. Abre la app para disparar el envío.</div>
+    <button class="btn primary" style="font-size:0.95rem; padding:0.6rem 1.4rem;" onclick="window.open('https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/ba7dd4d1-b423-429c-b438-45dc98c1d1c5?tenantId=8fbed393-d03b-49f8-be79-cd5e1f590fb2&hint=dcd088c4-550e-4bd6-8ccb-e2857889ac7e&sourcetime=1774392012028','_blank')">
+      📅 Abrir app — Enviar invitaciones sincónicas
+    </button>
+  </div>
+</div>
+
+<!-- TAB 4: CALENDARIOS -->
+<div class="tab-panel" id="tab3">
+  <div class="section-title">Formateador de Calendarios de Cursos</div>
+  <div class="section-sub">Sube el Excel del calendario o copia el bloque de cursos incluyendo sus encabezados.</div>
+  <div class="helper">💡 El sistema reconoce variantes como Código de curso, Código asignatura, Abreviada, Nombre de curso, Nombre asignatura, Profesor, Docente, Inicio, Fecha de inicio, Fin y Fecha de término.</div>
+  <div class="form-group">
+    <label>📂 Subir calendario en Excel</label>
+    <input id="t4-archivo" type="file" accept=".xlsx,.xls,.csv" onchange="t4CargarExcel(this)" />
+    <div class="helper" id="t4-archivo-status">Se buscará automáticamente la hoja que contenga los encabezados del calendario.</div>
+  </div>
+  <div class="form-group"><label>📋 O pega aquí el bloque del calendario:</label><textarea id="t4-texto" placeholder="Pega aquí el bloque copiado del Excel..." style="min-height:220px;"></textarea></div>
+  <hr class="divider">
+  <div style="font-weight:700; margin-bottom:0.35rem;">2. Identifica el programa y genera la versión</div>
+  <div class="helper" id="t4-catalogos-status">⏳ Cargando opciones oficiales desde nrcs.json...</div>
+  <div class="form-grid">
+    <div class="form-group"><label>NOMBRE DE PROGRAMA</label><select id="t4-programa" onchange="t4ProgramaCambio()"><option value="">— Selecciona programa —</option></select><button type="button" class="c-btn-add" style="margin-top:6px" onclick="t4AgregarPrograma()">＋ Agregar programa nuevo</button></div>
+    <div class="form-group"><label>MATERIA / SIGLA DEL PROGRAMA</label><select id="t4-materia" onchange="t4ProponerIntake()"><option value="">— Selecciona materia —</option></select><button type="button" class="c-btn-add" style="margin-top:6px" onclick="t4AgregarMateria()">＋ Agregar materia o sigla nueva</button></div>
+    <div class="form-group"><label>FACULTAD</label><select id="t4-facultad"><option value="">— Selecciona facultad —</option></select></div>
+    <div class="form-group"><label>CÓDIGO DE CURSO ADICIONAL (OPCIONAL)</label><input id="t4-codigo-nuevo" type="text" placeholder="Ej. UNI118 (solo si no viene en el calendario)" /><div class="helper">Completa únicamente los códigos ausentes del archivo. No reemplaza códigos existentes.</div></div>
+    <div class="form-group"><label>TIPO DE PROGRAMA</label><select id="t4-tipo"><option value="">— Selecciona tipo —</option><option value="100%ONLINE">100%ONLINE</option><option value="SEMIPRES">SEMIPRES</option></select></div>
+    <div class="form-group"><label>NÚMERO O LETRA DE VERSIÓN</label><input type="text" id="t4-version-num" maxlength="3" placeholder="Ej: 01, 17 o J" oninput="t4ProponerIntake()" /></div>
+    <div class="form-group"><label>FECHA INICIO CURSO DE INDUCCIÓN</label><input type="date" id="t4-fecha-induccion" onchange="t4ProponerIntake()" /></div>
+    <div class="form-group"><label>INTAKE O VERSIÓN PROPUESTO (EDITABLE)</label><input type="text" id="t4-intake" placeholder="Ej: MAG_MAPS_VERSION_01_18.08.2026" /></div>
+    <div class="form-group">
+      <label>TUTOR NUEVA VERSIÓN <span style="color:#95a3b8;font-weight:400;text-transform:none;">(solo se aplica al intake nuevo)</span></label>
+      <select id="t4-tutor" onchange="t4AutoCorreo()">
+        <option value="">— Selecciona tutor —</option>
+        <option value="HANS NOVAKOVIC">HANS NOVAKOVIC</option>
+        <option value="KIMBERLY JORQUERA">KIMBERLY JORQUERA</option>
+        <option value="MARTA GONZALEZ">MARTA GONZALEZ</option>
+        <option value="DANITZA JANSEN">DANITZA JANSEN</option>
+        <option value="SYLVIA VALENZUELA">SYLVIA VALENZUELA</option>
+        <option value="PAULA PARDO">PAULA PARDO</option>
+        <option value="MARIA FERNANDA GONZALEZ">MARIA FERNANDA GONZALEZ</option>
+        <option value="BARBARA ROJAS">BARBARA ROJAS</option>
+        <option value="CONSTANZA CONTRERAS">CONSTANZA CONTRERAS</option>
+        <option value="CARLA PEÑA">CARLA PEÑA</option>
+        <option value="ORIETTA CORTES">ORIETTA CORTES</option>
+        <option value="ALVARO ORELLANA">ALVARO ORELLANA</option>
+        <option value="NOEMI PAZ">NOEMI PAZ</option>
+        <option value="CONSUELO PARGA">CONSUELO PARGA</option>
+        <option value="FRANCISCA INDA">FRANCISCA INDA</option>
+        <option value="JAVIERA ROJAS">JAVIERA ROJAS</option>
+        <option value="ALYSON HERNANDEZ">ALYSON HERNANDEZ</option>
+        <option value="CAROLINA MONSALVE">CAROLINA MONSALVE</option>
+        <option value="PATRICIO COLLAO">PATRICIO COLLAO</option>
+        <option value="FELIPE GARCIA">FELIPE GARCIA</option>
+        <option value="RITA GALVEZ">RITA GALVEZ</option>
+        <option value="MIGUEL ROSALES">MIGUEL ROSALES</option>
+        <option value="HECTOR TAPIA">HECTOR TAPIA</option>
+        <option value="PABLO ALDERETE">PABLO ALDERETE</option>
+        <option value="DANIELA CORNEJO">DANIELA CORNEJO</option>
+        <option value="POR DEFINIR">POR DEFINIR</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>CORREO TUTOR NUEVA VERSIÓN <span style="color:#95a3b8;font-weight:400;text-transform:none;">(solo intake nuevo)</span></label>
+      <input type="text" id="t4-correotutor" placeholder="Se autocompleta al elegir tutor de la nueva versión" />
+    </div>
+    <div class="form-group full">
+      <label>COORDINADORES <span style="color:#95a3b8;font-weight:400;text-transform:none;">(selección múltiple — columna COORDINADION)</span></label>
+      <div id="t4-coord-chips" style="display:flex;flex-wrap:wrap;gap:0.4rem;min-height:2.4rem;background:#eef2f7;border:1px solid rgba(246,193,40,0.8);border-radius:8px;padding:0.4rem 0.6rem;align-items:center;cursor:pointer;" onclick="t4CoordToggle()">
+        <span id="t4-coord-placeholder" style="color:#888;font-size:0.88rem;">Haz clic para seleccionar coordinadores...</span>
+      </div>
+      <div id="t4-coord-dropdown" style="display:none;position:relative;z-index:50;">
+        <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.3);">
+          <div id="t4-coord-options"></div>
+        </div>
+      </div>
+      <input type="hidden" id="t4-coord-value" />
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn primary" onclick="processTab4()">⚡ Procesar Calendario</button></div>
+  <div id="t4-result"></div>
+  <div id="t4-actions" style="display:none" class="btn-row">
+    <button class="btn" onclick="downloadTab4()">📥 Descargar Excel</button>
+    <button class="btn primary" type="button" onclick="cAbrirNotificacion()">✉️ Preparar aviso</button>
+  </div>
+</div>
+
+<!-- TAB 5: NOTIFICACIÓN CARPETAS CREADAS -->
+<div class="tab-panel" id="tab4">
+  <div class="section-title">Notificación · Carpetas Creadas en Teams</div>
+  <div class="section-sub">Acumula versiones en esta misma pestaña: se conservarán al volver al formateador o recargar la página y solo se borrarán al pulsar Limpiar formulario.</div>
+
+  <div class="carpetas-layout">
+    <div class="c-form-panel">
+      <div>
+        <span class="c-section-lbl">📋 Datos del correo</span>
+        <div style="display:flex;flex-direction:column;gap:0.65rem;margin-top:0.6rem;">
+          <div class="form-group">
+            <label>Coordinadores y tutores destinatarios</label><input type="search" id="c-buscar-dest" placeholder="Buscar por nombre o correo" oninput="cRenderDestinatarios()"/><div id="c-destinatarios" style="max-height:240px;overflow:auto;border:1px solid #cbd5e1;border-radius:8px;margin-top:6px;padding:7px"></div><input type="hidden" id="c-coord"/><label style="margin-top:6px">Para (correos seleccionados)</label><input id="c-para" readonly style="font-size:11px"/><label style="margin-top:6px">CC (opcional)</label><input id="c-cc" placeholder="correo@unab.cl; otro@unab.cl"/>
+          </div>
+          <div class="form-group">
+            <label>Nombre del programa / intake</label>
+            <input type="text" id="c-intake" placeholder="Ej: MOL — Intake 27.10.2025" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <span class="c-section-lbl">📂 Carpetas en Teams</span>
+        <div id="c-carpetas" style="display:flex;flex-direction:column;gap:0.55rem;margin-top:0.6rem;"></div>
+        <button class="c-btn-add" onclick="cAdd()">＋ Agregar versión al lote</button><button type="button" class="c-btn-add" id="c-boton-ejecutar" onclick="cEjecutarLote()" style="margin-top:9px;background:#007e83;color:white;border-color:#007e83;font-weight:700">📁 Crear carpetas y enviar correo</button>
+<details style="margin-top:8px;border:1px solid #4e667c;border-radius:7px;padding:8px">
+<summary style="cursor:pointer;font-size:12px;font-weight:700">⚙ Conexión Power Automate (configuración excepcional)</summary>
+<label for="c-url-flujo" style="display:block;margin-top:9px;font-size:12px">Dirección HTTP POST del flujo</label>
+<input id="c-url-flujo" type="password" autocomplete="off" placeholder="Pegar URL del disparador HTTP" style="width:100%;margin-top:4px;font-size:12px" />
+<button type="button" class="c-btn-add" onclick="cGuardarEndpoint()" style="margin-top:7px">Guardar dirección en esta sesión</button>
+<p style="font-size:11px;line-height:1.5;color:#a8bcd4">La dirección contiene una clave privada. No está publicada en GitHub. Si utilizas el enlace de activación, no necesitas pegarla aquí. Se conserva en el almacenamiento de este navegador.</p>
+</details>
+<div id="c-estado-envio" role="status" aria-live="polite" style="font-size:12px;line-height:1.5;margin-top:8px"></div>
+<p style="font-size:11px;color:#64748b">El botón ejecuta el flujo y solicita un solo correo a los destinatarios elegidos. El lote permanece hasta que pulses Limpiar formulario.</p>
+      </div>
+      <div>
+        <span class="c-section-lbl">⚙️ Acciones</span>
+        <div style="display:flex;flex-direction:column;gap:0.55rem;margin-top:0.6rem;">
+          <button class="btn primary" style="width:100%;justify-content:center;padding:0.62rem;" onclick="cGenerar()">👁️ Vista previa del correo</button>
+          <button class="btn" style="width:100%;justify-content:center;font-size:0.8rem;" onclick="cReset()">Limpiar formulario</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="c-preview-panel">
+      <div class="c-preview-bar">
+        <div>
+          <div class="c-preview-bar-title">Vista previa del correo</div>
+          <div class="c-preview-bar-sub">Correo HTML institucional · verifica destinatarios antes de enviarlo</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap;">
+          <div class="c-tabs">
+            <button class="c-tab-btn active" onclick="cTab('preview',this)">🖼 Vista</button>
+            <button class="c-tab-btn" onclick="cTab('code',this)">💻 HTML</button>
+          </div>
+          <button class="c-btn-copy" id="c-copy-btn" onclick="cCopiar()">📋 Copiar correo</button>
+        </div>
+      </div>
+      <div class="c-preview-body" id="c-preview-body">
+        <div class="c-empty" id="c-empty">
+          <div class="ce-icon">📬</div>
+          <h3>Aún sin vista previa</h3>
+          <p>Completa el formulario y haz clic en <strong style="color:var(--line)">Generar correo</strong>.</p>
+        </div>
+        <div id="c-rendered" style="display:none;"></div>
+      </div>
+      <div class="c-code-area" id="c-code-area">
+        <pre id="c-code-pre"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="etop-toast" id="etop-toast">✅ Correo copiado — pega en Outlook con Ctrl+V</div>
+
+<script>
+// ─── GLOBAL STATE ─────────────────────────────────────────────────────────────
+const state = {
+  t1Files:[], t1mFiles:[], t1mAccumulated:[],
+  t2File:null, t3File:null, t2Data:null, t3Data:null,
+  t1Mode:'universal', t1Data:null, t1DetectedFormat:'', t1SelectedCourse:null, t1OmitidosSemipres:[], t1OmitidosSinFecha:0, t1NoIdentificadosModalidad:[], t4Data:null
+};
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(idx, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='tab'+idx));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+}
+
+function clearAll() {
+  Object.assign(state,{t1Files:[],t1mFiles:[],t1mAccumulated:[],t2File:null,t3File:null,t2Data:null,t3Data:null,t1Mode:'universal',t1Data:null,t1DetectedFormat:'',t1SelectedCourse:null,t1OmitidosSemipres:[],t1OmitidosSinFecha:0,t1NoIdentificadosModalidad:[],t1BulkMeta:null});
+  document.querySelectorAll('input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],textarea').forEach(el=>el.value='');
+  ['drop1-names','drop1m-names','drop2-names','drop3-names'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='';});
+  ['t1-actions','t2-actions','t3-actions','t2-paso3','t3-paso3','btn-clear-accum'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  ['t1-result','t1-sp-result','t2-result','t3-result','t2-sp-result','t3-sp-result','t4-result'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  selectRadio(document.querySelector('#tab1-radio .radio-option'),'tab1-mode','universal');
+  switchTab(0,document.querySelectorAll('.tab-btn')[0]);
+  ['t4-programa','t4-materia','t4-facultad','t4-tipo','t4-tutor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  t4CoordSel.clear();t4CoordRenderChips();
+  cReset();
+}
+
+function clearAccumulated(){
+  if(!confirm('¿Eliminar todos los registros acumulados?'))return;
+  state.t1mAccumulated=[];
+  document.getElementById('t1-result').innerHTML='<div class="alert info">Registros acumulados eliminados.</div>';
+  document.getElementById('btn-clear-accum').style.display='none';
+}
+function deleteRow(idx){
+  if(!confirm('¿Eliminar este registro?'))return;
+  state.t1mAccumulated.splice(idx,1);renderAccumulatedTable();
+  if(!state.t1mAccumulated.length)document.getElementById('btn-clear-accum').style.display='none';
+}
+
+function selectRadio(el,name,value){
+  document.querySelectorAll(`[onclick*="${name}"]`).forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');state.t1Mode=value;
+  ['t1-diario','t1-manual','t1-texto','t1-version'].forEach(id=>{const s=document.getElementById(id);if(s)s.classList.remove('visible');});
+  const map={universal:'t1-diario',diario:'t1-diario',manual:'t1-manual',texto:'t1-texto',version:'t1-version'};
+  const t=document.getElementById(map[value]);if(t)t.classList.add('visible');if(value==='version')tvRenderCursos();
+}
+
+function handleFiles(input,dropId,stateKey){
+  const files=Array.from(input.files);
+  const nameEl=document.getElementById(dropId+'-names');if(nameEl)nameEl.textContent=files.map(f=>f.name).join(', ');
+  if(stateKey==='t1-files')state.t1Files=files;
+  else if(stateKey==='t1m-files')state.t1mFiles=files;
+  else if(stateKey==='t2-file')state.t2File=files[0]||null;
+  else if(stateKey==='t3-file')state.t3File=files[0]||null;
+}
+
+async function readFileToRows(file,hdr=true){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const d=new Uint8Array(e.target.result),wb=XLSX.read(d,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]];res(hdr?XLSX.utils.sheet_to_json(ws,{defval:''}):XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));}catch(e){rej(e);}};r.onerror=rej;r.readAsArrayBuffer(file);});}
+async function readCSVToRows(file,hdr=true){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'string',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]];res(hdr?XLSX.utils.sheet_to_json(ws,{defval:''}):XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));}catch(e){rej(e);}};r.onerror=rej;r.readAsText(file);});}
+async function readFile(file,hdr=true){return file.name.toLowerCase().endsWith('.csv')?readCSVToRows(file,hdr):readFileToRows(file,hdr);}
+
+function formatDateDMY(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}-${m}-${y}`;}
+function formatDateSlash(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+
+function renderTable(rows,containerEl){
+  if(!rows||!rows.length){containerEl.innerHTML='<div class="alert info">No se encontraron registros.</div>';return;}
+  const cols=Object.keys(rows[0]);
+  let html='<div class="table-wrap"><table><thead><tr>';
+  cols.forEach(c=>html+=`<th>${c}</th>`);
+  html+='</tr></thead><tbody>';
+  rows.slice(0,200).forEach(r=>{html+='<tr>';cols.forEach(c=>html+=`<td title="${String(r[c]).replace(/"/g,'&quot;')}">${r[c]??''}</td>`);html+='</tr>';});
+  html+='</tbody></table></div>';
+  if(rows.length>200)html+=`<div class="alert info mt05">Mostrando primeras 200 filas de ${rows.length}.</div>`;
+  containerEl.innerHTML=html;
+}
+
+function renderAccumulatedTable(){
+  const el=document.getElementById('t1-result');
+  if(!state.t1mAccumulated.length){el.innerHTML='<div class="alert info">No hay registros acumulados.</div>';return;}
+  const cols=Object.keys(state.t1mAccumulated[0]);
+  let html=`<div class="alert success">📊 Total acumulado: <span class="badge">${state.t1mAccumulated.length}</span> registros</div><div class="table-wrap"><table><thead><tr>`;
+  cols.forEach(c=>html+=`<th>${c}</th>`);html+='<th>Acciones</th></tr></thead><tbody>';
+  state.t1mAccumulated.slice(0,200).forEach((r,i)=>{html+='<tr>';cols.forEach(c=>html+=`<td>${r[c]??''}</td>`);html+=`<td><button class="btn-delete" onclick="deleteRow(${i})">🗑️</button></td></tr>`;});
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+function normCols(rows){return rows.map(r=>{const nr={};for(const k in r)nr[k.trim().toUpperCase()]=r[k];return nr;});}
+function anyToISO(val){
+  if(!val&&val!==0)return'';
+  if(val instanceof Date){if(isNaN(val))return'';return val.toISOString().substring(0,10);}
+  const s=String(val).replace('.0','').trim();if(!s||s==='NaN')return'';
+  if(/^\d{8}$/.test(s))return`${s.substring(0,4)}-${s.substring(4,6)}-${s.substring(6,8)}`;
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const d=new Date(s);if(!isNaN(d))return d.toISOString().substring(0,10);return s;
+}
+function findCol(cols,...kws){for(const kw of kws){const f=cols.find(c=>c.toUpperCase().includes(kw.toUpperCase()));if(f)return f;}return null;}
+
+function exportXLSXConTabla(rows,filename){
+  if(!rows||!rows.length)return;
+  rows=rows.map(r=>{const nrcCod=String(r.NRC_COD||'').trim(),periodo=String(r.PERIODO||'').trim();return {...r,NRC_COD_CAL_FILTRO:(nrcCod&&periodo)?nrcCod+'_'+periodo:''};});
+  const cols=Object.keys(rows[0]);const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Estudiantes');
+  function colLetter(n){let s='';n++;while(n>0){n--;s=String.fromCharCode(65+(n%26))+s;n=Math.floor(n/26);}return s;}
+  const lastCol=colLetter(cols.length-1),lastRow=rows.length+1,tableRef='A1:'+lastCol+lastRow;
+  const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="1" name="TablaEstudiantes3" displayName="TablaEstudiantes3" ref="'+tableRef+'" totalsRowShown="0"><autoFilter ref="'+tableRef+'"/><tableColumns>'+cols.map((c,i)=>'<tableColumn id="'+(i+1)+'" name="'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')+'"/>').join('')+'</tableColumns><tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>';
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'binary',compression:true});
+  injectTableIntoXlsx(wbout,xml,'Estudiantes',tableRef).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);});
+}
+function downloadAccumulated(){if(!state.t1mAccumulated.length)return;const ts=new Date().toISOString().replace(/[-:T]/g,'').substring(0,14);exportXLSXConTabla(state.t1mAccumulated,'Estudiantes_Formateados_'+ts+'.xlsx');}
+
+async function injectTableIntoXlsx(wboutBinary,tableXml,sheetName,tableRef){
+  if(typeof JSZip==='undefined'){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+  const buf=new ArrayBuffer(wboutBinary.length),view=new Uint8Array(buf);for(let i=0;i<wboutBinary.length;i++)view[i]=wboutBinary.charCodeAt(i)&0xFF;
+  const zip=await JSZip.loadAsync(buf);zip.file('xl/tables/table1.xml',tableXml);
+  const sheetFile='xl/worksheets/sheet1.xml';let sheetXml=await zip.file(sheetFile).async('string');
+  if(!sheetXml.includes('tableParts')){sheetXml=sheetXml.replace('</worksheet>','<tableParts count="1"><tablePart r:id="rId99"/></tableParts></worksheet>');zip.file(sheetFile,sheetXml);}
+  const relsPath='xl/worksheets/_rels/sheet1.xml.rels';let relsXml='';const rf=zip.file(relsPath);
+  if(rf){relsXml=await rf.async('string');relsXml=relsXml.replace('</Relationships>','<Relationship Id="rId99" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/></Relationships>');}
+  else{relsXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId99" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/></Relationships>';}
+  zip.file(relsPath,relsXml);
+  let ct=await zip.file('[Content_Types].xml').async('string');
+  if(!ct.includes('table1.xml')){ct=ct.replace('</Types>','<Override PartName="/xl/tables/table1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/></Types>');zip.file('[Content_Types].xml',ct);}
+  return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// parseWebTextBlocks — v2.0 (2025-07)
+// ═══════════════════════════════════════════════════════════════════════════════
+function parseWebTextBlocks(rawText) {
+  const filas  = [];
+  const seen   = new Set();
+  const lines  = rawText.split('\n');
+  let currentPeriodo='',currentNrc='',currentNrcCod='',currentNombre='';
+  let inTable=false,colRut=-1,colNombre=-1,colEmail=-1,colRol=-1;
+  const RUT_RE=/^\d{7,9}-?[0-9Kk]$/i,PERIODO_RE=/^\d{6}$/;
+
+  for(let i=0;i<lines.length;i++){
+    const raw=lines[i],stripped=raw.trim();
+    if(!stripped)continue;
+    const parts=raw.split('\t'),isTabular=parts.length>=3;
+    if(!isTabular){
+      if(/^Inscripciones de Curso/i.test(stripped)){
+        currentPeriodo='';currentNrc='';currentNrcCod='';currentNombre='';
+        inTable=false;colRut=-1;colNombre=-1;colEmail=-1;colRol=-1;continue;
+      }
+      if(PERIODO_RE.test(stripped)){
+        const prev=(lines[i-1]||'').trim().toUpperCase();
+        if(prev==='PERIODO')currentPeriodo=stripped;
+        else if(prev==='NRC')currentNrc=stripped;
+        continue;
+      }
+      const mNom=stripped.match(/^NOMBRE:\s*(.+)$/i);
+      if(mNom){currentNombre=mNom[1].trim();inTable=false;continue;}
+      const mCod=stripped.match(/^C[ÓO]DIGO:\s*(.+)$/i);
+      if(mCod){
+        const partes=mCod[1].trim().split('.');
+        if(partes.length>=3){
+          const materiaNum=partes[0];
+          if(!currentPeriodo)currentPeriodo=partes[1];
+          if(!currentNrc)currentNrc=partes[2];
+          const mm=materiaNum.match(/^([A-Za-z]+)(\d+)$/);
+          currentNrcCod=mm?`${currentNrc}_${mm[1].toUpperCase()}${mm[2]}`:`${currentNrc}_${materiaNum.toUpperCase()}`;
+        }
+        inTable=false;continue;
+      }
+      continue;
+    }
+    const partsClean=parts.map(p=>p.trim()),partsUpper=partsClean.map(p=>p.toUpperCase());
+    const hasRut=partsUpper.some(p=>p==='RUT'),hasEmail=partsUpper.some(p=>p.includes('EMAIL')||p.includes('CORREO')),hasNombre=partsUpper.some(p=>p.includes('NOMBRE'));
+    if(hasRut&&(hasEmail||hasNombre)){
+      inTable=true;
+      colRut=partsUpper.findIndex(p=>p==='RUT');
+      colNombre=partsUpper.findIndex(p=>p.includes('NOMBRE'));
+      colEmail=partsUpper.findIndex(p=>p.includes('EMAIL')||p.includes('CORREO'));
+      colRol=partsUpper.findIndex(p=>p==='ROL');
+      if(colEmail===-1)colEmail=2;if(colNombre===-1)colNombre=1;if(colRut===-1)colRut=0;
+      continue;
+    }
+    if(!inTable)continue;
+    const rutVal=(colRut!==-1&&colRut<partsClean.length)?partsClean[colRut]:partsClean[0];
+    if(!RUT_RE.test(rutVal))continue;
+    let nombreVal=(colNombre!==-1&&colNombre<partsClean.length)?partsClean[colNombre]:'';
+    let emailVal=(colEmail!==-1&&colEmail<partsClean.length)?partsClean[colEmail]:'';
+    const rolVal=(colRol!==-1&&colRol<partsClean.length)?partsClean[colRol]:'';
+    if(!emailVal.includes('@'))emailVal=partsClean.find(p=>p.includes('@')&&p.includes('.'))||'';
+    if(rolVal&&!/ESTUDIANTE/i.test(rolVal))continue;
+    if(!emailVal||!emailVal.includes('@'))continue;
+    const key=`${rutVal.toUpperCase()}|${currentNrcCod}`;
+    if(seen.has(key))continue;seen.add(key);
+    filas.push({PERIODO:currentPeriodo,NRC_COD:currentNrcCod||`${currentNrc}_`,NOMBRE_CURSO:currentNombre,FECHA_INICIO:'',RUT:rutVal.toUpperCase(),NOMBRE:nombreVal.toUpperCase(),CORREO_UNAB:emailVal.toLowerCase(),Columna7:''});
+  }
+  return filas;
+}
+
+async function processCSVManual(file,nrcCod,fechaInicio){
+  const rows=await readFile(file,true),filas=[];
+  for(const r of rows){
+    const ns=String(r['Nombre de sección']||r['Nombre de secci  n']||'').trim();
+    const rut=String(r['Identificación de SIS del estudiante']||r['Identificacion de SIS del estudiante']||'').trim();
+    const nombre=String(r['Nombre del estudiante']||'').trim();
+    const correo=String(r['Correo electrónico']||r['Correo electronico']||'').trim().toLowerCase();
+    if(!correo||!correo.includes('@')||!rut)continue;
+    let periodo='';if(ns){const m=ns.match(/^(\d{6})/);if(m)periodo=m[1];}
+    let nc='';if(ns&&ns.includes('|'))nc=ns.split('|')[1].trim();
+    filas.push({PERIODO:periodo,NRC_COD:nrcCod,NOMBRE_CURSO:nc,FECHA_INICIO:fechaInicio,RUT:rut,NOMBRE:nombre.toUpperCase(),CORREO_UNAB:correo,Columna7:''});
+  }
+  return filas;
+}
+
+// ─── TAB 1 · CARGA UNIVERSAL DE ESTUDIANTES ─────────────────────────────────
+const T1_FLOW_URL = 'https://default8fbed393d03b49f8be79cd5e1f590f.b2.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/04/workflows/a85ccb20ca1445ae9eec63d6c8bdbb6f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=UdUZM4x43rwxEjwzfeWLPmbWDdRNSmotFEMlzH4zW7c'; // Flujo ETOP_CARGA_ESTUDIANTES_DIRECTA V2.1
+
+function t1Get(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') return String(obj[k]).trim();
+  }
+  return '';
+}
+function t1Norm(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+function t1Headers(rawRows){return (rawRows[0]||[]).map(x=>String(x||'').trim());}
+function t1DetectarFormato(rawRows){
+  const hIdx=t1FindHeaderIndex(rawRows), headers=(rawRows[hIdx]||[]).map(x=>String(x||'').trim()), joined=t1Norm(headers.join(' | '));
+  if(joined.includes('NRC COD CAL FILTRO') && joined.includes('NRC COD') && joined.includes('RUT') && joined.includes('CORREO UNAB')) return 'ETOP consolidado';
+  if(joined.includes('ALUMNO POTENCIAL') && joined.includes('DV')) return 'Alumno Potencial';
+  if((joined.includes('NRC')||joined.includes('NRC COD')) && joined.includes('PERIODO') && (joined.includes('RUT')||joined.includes('ID'))) return 'Sistema Diario';
+  if(joined.includes('IDENTIFICACION DE SIS DEL ESTUDIANTE') || joined.includes('NOMBRE DE SECCION')) return 'CSV de curso / Canvas';
+  return 'Nómina genérica';
+}
+function t1FindHeaderIndex(rawRows){
+  for(let i=0;i<Math.min(25,rawRows.length);i++){
+    const rs=t1Norm((rawRows[i]||[]).join(' | '));
+    if((rs.includes('RUT')||rs.includes(' ID ')||rs.startsWith('ID ')) && (rs.includes('CORREO')||rs.includes('EMAIL')||rs.includes('MAIL'))) return i;
+    if(rs.includes('ALUMNO POTENCIAL') && rs.includes('DV')) return i;
+  }
+  return 0;
+}
+function t1NormalizarRut(base,dv=''){
+  // ETOP: RUT como texto continuo, sin puntos ni guion (incluye el dígito verificador).
+  const original=String(base??'').trim().replace(/\.0$/,'').toUpperCase();
+  const b=original.replace(/[^0-9K]/g,'');
+  const d=String(dv??'').trim().replace(/\.0$/,'').toUpperCase().replace(/[^0-9K]/g,'');
+  if(!b)return '';
+  // Si el archivo trae un RUT completo, no duplicar su DV.
+  if(!d || original.includes('-'))return b;
+  return b+d;
+}
+function t1ParseAlumnoPotencial(rawRows){
+  const hIdx=t1FindHeaderIndex(rawRows), headers=(rawRows[hIdx]||[]).map(h=>String(h||'').trim());
+  const idx=(...terms)=>headers.findIndex(h=>terms.some(t=>t1Norm(h).includes(t1Norm(t))));
+  const iRut=idx('RUT (Alumno Potencial)','RUT'), iDv=idx('DV (Alumno Potencial)','DV'), iNom=idx('Nombre (Alumno Potencial)','Nombre'), iCor=idx('Correo Electrónico','Correo Electronico','Email','Mail');
+  const out=[];
+  for(const row of rawRows.slice(hIdx+1)){
+    if(!row||row.every(c=>!String(c||'').trim()))continue;
+    const rut=t1NormalizarRut(iRut>=0?row[iRut]:'',iDv>=0?row[iDv]:'');
+    const nombre=iNom>=0?String(row[iNom]||'').trim().toUpperCase():'';
+    const correo=iCor>=0?String(row[iCor]||'').trim().toLowerCase():'';
+    if(!rut||!correo.includes('@'))continue;
+    out.push({RUT:rut,NOMBRE:nombre,CORREO_UNAB:correo,Columna7:''});
+  }
+  return out;
+}
+function t1ParseGenerico(rawRows){
+  const hIdx=t1FindHeaderIndex(rawRows), rawHeaders=(rawRows[hIdx]||[]).map(h=>String(h||'').trim());
+  const seen=new Set(),headers=rawHeaders.map((h,i)=>{let k=h||`C${i}`;const n=t1Norm(k);if(seen.has(n))k+='_R';seen.add(n);return k;});
+  const normHeaders=headers.map(t1Norm);
+  const find=(...terms)=>normHeaders.findIndex(h=>terms.some(t=>h.includes(t1Norm(t))));
+  const iRut=find('RUT','ID ESTUDIANTE','IDENTIFICACION DE SIS','IDENTIFICACIÓN DE SIS');
+  const iDv=find('DV');
+  let iNom=find('NOMBRE DEL ESTUDIANTE','NOMBRE ESTUDIANTE','NOMBRE ALUMNO','NOMBRE');
+  const iApe=find('APELLIDO');
+  const iCorreoUnab=find('CORREO UNAB','EMAIL UNAB','CORREO INSTITUCIONAL');
+  const iCorreoPers=find('CORREO PERSONAL','EMAIL PERSONAL','CORREO ELECTRONICO','CORREO ELECTRÓNICO','EMAIL','MAIL');
+  const emailRe=/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+  const rutRe=/\b(\d{7,9}-?[0-9Kk])\b/;
+  const out=[];
+  for(const row of rawRows.slice(hIdx+1)){
+    if(!row||row.every(c=>!String(c||'').trim()))continue;
+    const joined=row.map(v=>String(v??'')).join(' ');
+    const emails=joined.match(emailRe)||[];
+    let rut=t1NormalizarRut(iRut>=0?row[iRut]:'',iDv>=0?row[iDv]:'');
+    if(!rut){const m=joined.match(rutRe);if(m)rut=t1NormalizarRut(m[1]);}
+    if(!rut)continue;
+    const nomParts=[];
+    if(iNom>=0 && String(row[iNom]||'').trim())nomParts.push(String(row[iNom]).trim());
+    if(iApe>=0 && iApe!==iNom && String(row[iApe]||'').trim())nomParts.push(String(row[iApe]).trim());
+    const nombre=nomParts.join(' ').trim().toUpperCase();
+    let correoUnab=iCorreoUnab>=0?String(row[iCorreoUnab]||'').trim().toLowerCase():'';
+    let correoPersonal=iCorreoPers>=0?String(row[iCorreoPers]||'').trim().toLowerCase():'';
+    if(!correoUnab) correoUnab=emails.find(e=>e.toLowerCase().includes('@uandresbello.edu'))?.toLowerCase()||'';
+    if(!correoPersonal) correoPersonal=emails.find(e=>!e.toLowerCase().includes('@uandresbello.edu'))?.toLowerCase()||'';
+    if(!correoUnab && !correoPersonal && emails.length) correoUnab=emails[0].toLowerCase();
+    if(!correoUnab && correoPersonal) correoUnab=correoPersonal;
+    if(!correoUnab)continue;
+    out.push({RUT:rut,NOMBRE:nombre,CORREO_UNAB:correoUnab,Columna7:correoPersonal});
+  }
+  return out;
+}
+function t1CursoDesdeCatalogo(r){
+  const periodo=t1Get(r,['periodo','PERIODO']).replace(/\.0$/,'');
+  const nrcCal=t1Get(r,['nrc_cod_cal','NRC_COD_CAL','nrc','NRC']);
+  let nrcCod=t1Get(r,['nrc_cod','NRC_COD']);
+  if(!nrcCod && nrcCal){
+    nrcCod=nrcCal;
+    if(periodo && nrcCod.endsWith('_'+periodo)) nrcCod=nrcCod.slice(0,-(periodo.length+1));
+  }
+  const nombre=t1Get(r,['nombre curso','NOMBRE CURSO','nombre_curso','NOMBRE_CURSO']);
+  const fecha=t1Get(r,['fecha inicio','FECHA INICIO','fecha_inicio','FECHA_INICIO']);
+  return {PERIODO:periodo,NRC_COD:nrcCod,NRC_COD_CAL_FILTRO:nrcCal||(nrcCod&&periodo?nrcCod+'_'+periodo:''),NOMBRE_CURSO:nombre,FECHA_INICIO:fecha,_raw:r};
+}
+function t1EsMBAES(r){
+  const codigo=t1Norm(t1Get(r,['codigo curso','CODIGO CURSO','codigo_curso','CODIGO_CURSO'])).replace(/\s+/g,'');
+  const materia=t1Norm(t1Get(r,['materia','MATERIA'])).replace(/\s+/g,'');
+  return codigo.startsWith('MBAES') || materia==='MBAES';
+}
+function t1CursoPermitidoCatalogo(r){
+  const tipo=t1Norm(t1Get(r,['tipo','TIPO','tipo_nrc','TIPO_NRC'])).replace(/\s+/g,'');
+  if(tipo!=='SEMIPRES')return true;
+  return t1EsMBAES(r);
+}
+function t1CatalogoPorNrc(){
+  const mapa=new Map();
+  for(const r of (t2NrcsData||[])){
+    const c=t1CursoDesdeCatalogo(r);
+    const keys=[c.NRC_COD_CAL_FILTRO,c.NRC_COD,r.nrc,r.NRC].filter(Boolean);
+    for(const k of keys)mapa.set(t1Norm(k).replace(/\s+/g,''),r);
+  }
+  return mapa;
+}
+function t1BuscarRegistroCatalogo(row,mapa){
+  const keys=[row.NRC_COD_CAL_FILTRO,(row.NRC_COD&&row.PERIODO)?row.NRC_COD+'_'+row.PERIODO:'',row.NRC_COD].filter(Boolean);
+  for(const k of keys){const hit=mapa.get(t1Norm(k).replace(/\s+/g,''));if(hit)return hit;}
+  return null;
+}
+function t1FiltrarModalidad(rows){
+  const mapa=t1CatalogoPorNrc(),permitidos=[],omitidos=[],noIdentificados=[];
+  for(const row of rows){
+    if(!String(row.NRC_COD||'').trim() && !String(row.NRC_COD_CAL_FILTRO||'').trim()){permitidos.push(row);continue;}
+    const cat=t1BuscarRegistroCatalogo(row,mapa);
+    if(!cat){
+      noIdentificados.push({...row,_motivo:'NRC no presente en nrcs.json'});
+      continue;
+    }
+    if(t1CursoPermitidoCatalogo(cat)){permitidos.push(row);continue;}
+    omitidos.push({...row,_tipo:t1Get(cat,['tipo','TIPO']),_cursoCatalogo:t1Get(cat,['nombre curso','NOMBRE CURSO']),_nrcCatalogo:t1Get(cat,['nrc','NRC'])});
+  }
+  return {permitidos,omitidos,noIdentificados};
+}
+function t1ResumenOmitidosHTML(){
+  const sem=state.t1OmitidosSemipres||[],sinFecha=state.t1OmitidosSinFecha||0,noId=state.t1NoIdentificadosModalidad||[];
+  let html='';
+  if(sem.length){
+    const cursos=[...new Map(sem.map(r=>[(r._nrcCatalogo||r.NRC_COD_CAL_FILTRO||r.NRC_COD||''),r])).values()];
+    html+=`<div class="alert info">🚫 <strong>${sem.length}</strong> registro${sem.length===1?'':'s'} omitido${sem.length===1?'':'s'} por pertenecer a cursos SEMIPRES sin seguimiento. <strong>MBAES no se excluye.</strong>`+
+      `<details style="margin-top:.45rem;"><summary style="cursor:pointer;font-weight:700;">Ver cursos omitidos (${cursos.length})</summary><div style="margin-top:.4rem;font-size:.8rem;">${cursos.map(r=>`${r._nrcCatalogo||r.NRC_COD_CAL_FILTRO||r.NRC_COD||'—'} · ${r._cursoCatalogo||r.NOMBRE_CURSO||'Sin nombre'}`).join('<br>')}</div></details></div>`;
+  }
+  if(sinFecha)html+=`<div class="alert info">📅 <strong>${sinFecha}</strong> registro${sinFecha===1?'':'s'} omitido${sinFecha===1?'':'s'} por no tener FECHA_INICIO.</div>`;
+  if(noId.length){
+    const cursos=[...new Set(noId.map(r=>r.NRC_COD_CAL_FILTRO||((r.NRC_COD&&r.PERIODO)?r.NRC_COD+'_'+r.PERIODO:r.NRC_COD)).filter(Boolean))];
+    html+=`<div class="alert info">⛔ <strong>${noId.length}</strong> registro${noId.length===1?'':'s'} omitido${noId.length===1?'':'s'} por no encontrarse en <strong>nrcs.json</strong>. Solo se cargan estudiantes de cursos reconocidos en el catálogo.`+
+      (cursos.length?`<details style="margin-top:.45rem;"><summary style="cursor:pointer;font-weight:700;">Ver NRC no encontrados</summary><div style="margin-top:.4rem;font-size:.8rem;">${cursos.join('<br>')}</div></details>`:'')+`</div>`;
+  }
+  return html;
+}
+function t1AplicarCurso(rows,curso){return rows.map(r=>({...r,PERIODO:r.PERIODO||curso.PERIODO,NRC_COD:r.NRC_COD||curso.NRC_COD,NOMBRE_CURSO:r.NOMBRE_CURSO||curso.NOMBRE_CURSO,FECHA_INICIO:r.FECHA_INICIO||curso.FECHA_INICIO,NRC_COD_CAL_FILTRO:r.NRC_COD_CAL_FILTRO||curso.NRC_COD_CAL_FILTRO}));}
+function t1TieneCurso(rows){return rows.length>0 && rows.every(r=>String(r.NRC_COD||'').trim() && String(r.PERIODO||'').trim());}
+function t1FinalizarRows(rows){
+  const seen=new Set(),out=[];
+  for(const r of rows){
+    const nr={...r};
+    if(!nr.NRC_COD_CAL_FILTRO && nr.NRC_COD && nr.PERIODO)nr.NRC_COD_CAL_FILTRO=String(nr.NRC_COD).trim()+'_'+String(nr.PERIODO).trim();
+    nr.RUT=t1NormalizarRut(nr.RUT);nr.NOMBRE=String(nr.NOMBRE||'').trim().toUpperCase();nr.CORREO_UNAB=String(nr.CORREO_UNAB||'').trim().toLowerCase();nr.Columna7=String(nr.Columna7||'').trim().toLowerCase();
+    const key=nr.RUT+'|'+String(nr.NRC_COD_CAL_FILTRO||'').toUpperCase();
+    if(!nr.RUT||seen.has(key))continue;seen.add(key);out.push(nr);
+  }
+  return out;
+}
+function t1ResetCourseSelection(){
+  state.t1SelectedCourse=null;
+  const b=document.getElementById('t1-course-box'),s=document.getElementById('t1-course-search'),sel=document.getElementById('t1-course-selected'),dd=document.getElementById('t1-course-dropdown');
+  if(b)b.classList.remove('visible');if(s)s.value='';if(sel){sel.style.display='none';sel.innerHTML='';}if(dd)dd.style.display='none';
+  const ae=document.getElementById('t1-actions');if(ae)ae.style.display='none';
+}
+function t1BuscarCurso(){
+  const q=t1Norm(document.getElementById('t1-course-search').value),dd=document.getElementById('t1-course-dropdown'),opts=document.getElementById('t1-course-options');
+  if(q.length<2){dd.style.display='none';return;}
+  const res=(t2NrcsData||[]).filter(r=>t1CursoPermitidoCatalogo(r) && t1Norm([r.nrc,r['codigo curso'],r['nombre curso'],r.intake,r.tutor,r.facultad].join(' ')).includes(q)).slice(0,40);
+  if(!res.length){opts.innerHTML='<div style="padding:.7rem;color:var(--muted);">Sin coincidencias.</div>';dd.style.display='block';return;}
+  opts.innerHTML='';res.forEach(r=>{const c=t1CursoDesdeCatalogo(r),div=document.createElement('div');div.style.cssText='padding:.55rem .85rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);';div.onmouseenter=()=>div.style.background='rgba(246,193,40,.08)';div.onmouseleave=()=>div.style.background='transparent';div.innerHTML='<strong style="color:var(--line);font-family:IBM Plex Mono,monospace;font-size:.78rem;">'+(c.NRC_COD_CAL_FILTRO||r.nrc||'')+'</strong><br><span style="font-size:.75rem;color:var(--muted);">'+(c.NOMBRE_CURSO||'Sin nombre')+' · '+(r.intake||'')+' · '+(r.tutor||'')+'</span>';div.onclick=()=>t1SeleccionarCurso(r);opts.appendChild(div);});dd.style.display='block';
+}
+function t1SeleccionarCurso(r){
+  if(!t1CursoPermitidoCatalogo(r)){document.getElementById('t1-course-selected').style.display='block';document.getElementById('t1-course-selected').innerHTML='🚫 Este curso es SEMIPRES y no tiene seguimiento ETOP. No puede asignarse a una nómina.';return;}
+  const c=t1CursoDesdeCatalogo(r);state.t1SelectedCourse=c;
+  document.getElementById('t1-course-search').value=c.NRC_COD_CAL_FILTRO||c.NRC_COD;
+  document.getElementById('t1-course-dropdown').style.display='none';
+  const el=document.getElementById('t1-course-selected');el.style.display='block';el.innerHTML='✅ <strong>Curso seleccionado:</strong> '+(c.NRC_COD_CAL_FILTRO||c.NRC_COD)+' · '+(c.NOMBRE_CURSO||'')+' · Inicio: '+(c.FECHA_INICIO||'—');
+  if(state.t1Data && !t1TieneCurso(state.t1Data)){
+    state.t1Data=t1FinalizarRows(t1AplicarCurso(state.t1Data,c));const mod=t1FiltrarModalidad(state.t1Data);state.t1Data=mod.permitidos;state.t1OmitidosSemipres.push(...mod.omitidos);state.t1NoIdentificadosModalidad.push(...mod.noIdentificados);
+    t1MostrarResultado(state.t1Data,state.t1DetectedFormat,true);
+  }
+}
+async function t1ProcesarArchivoUniversal(file){
+  const rawRows=await readFile(file,false);if(!rawRows.length)return {format:'Vacío',rows:[]};
+  const formato=t1DetectarFormato(rawRows);
+  if(formato==='ETOP consolidado'){
+    const idx=t1FindHeaderIndex(rawRows);
+    const headers=(rawRows[idx]||[]).map(x=>String(x||'').trim());
+    const obj=rawRows.slice(idx+1).filter(row=>row.some(x=>String(x??'').trim())).map(row=>Object.fromEntries(headers.map((h,i)=>[h,row[i]??''])));
+    const rows=obj.map(r=>({
+      PERIODO:t1Get(r,['PERIODO']),
+      NRC_COD:t1Get(r,['NRC_COD']),
+      NRC_COD_CAL_FILTRO:t1Get(r,['NRC_COD_CAL_FILTRO']),
+      NOMBRE_CURSO:t1Get(r,['NOMBRE_CURSO']),
+      FECHA_INICIO:anyToISO(t1Get(r,['FECHA_INICIO'])),
+      RUT:t1Get(r,['RUT']),NOMBRE:t1Get(r,['NOMBRE']),
+      CORREO_UNAB:t1Get(r,['CORREO_UNAB']),
+      Columna7:t1Get(r,['Columna7'])
+    })).filter(r=>r.RUT&&r.CORREO_UNAB.includes('@')&&r.NRC_COD&&r.PERIODO);
+    return {format:formato,rows};
+  }
+  if(formato==='Sistema Diario'){
+    const obj=normCols(await readFile(file,true)),rows=[];let omitidosSinFecha=0;if(!obj.length)return {format:formato,rows,omitidosSinFecha};
+    const cols=Object.keys(obj[0]);
+    const colRol=findCol(cols,'ROL'),colFecha=findCol(cols,'FECHA_INICIO','FECHA INICIO','FECHAINICIO'),colNrc=findCol(cols,'NRC'),colMateria=findCol(cols,'MATERIA'),colCurso=findCol(cols,'CURSO'),colNomCurso=findCol(cols,'NOMBRE_CURSO','NOMBRE CURSO'),colPeriodo=findCol(cols,'PERIODO'),colRut=findCol(cols,'RUT'),colNombre=cols.find(c=>c.includes('NOMBRE')&&!c.includes('CURSO')&&!c.includes('TUTOR')&&!c.includes('PROGRAMA')),colCorreoU=findCol(cols,'CORREO_UNAB','CORREO UNAB','CORREO'),colCorreoP=findCol(cols,'CORREO_PERSONAL','CORREO PERSONAL','EMAIL_PERSONAL','EMAIL PERSONAL');
+    for(const r of obj){
+      if(colRol&&String(r[colRol]||'').toUpperCase().trim()!=='ESTUDIANTE')continue;
+      let nrcCod='';if(colNrc&&colMateria&&colCurso){const ns=String(r[colNrc]||'').replace('.0','').trim(),ms=String(r[colMateria]||'').trim(),cs=String(r[colCurso]||'').replace('.0','').trim().padStart(3,'0');if(ns)nrcCod=`${ns}_${ms}${cs}`;}
+      const fecha=colFecha?anyToISO(r[colFecha]):'';
+      // Si este formato trae columna FECHA_INICIO, una fila sin fecha no corresponde
+      // a un inicio de curso válido y no debe pasar a la carga de estudiantes.
+      if(colFecha && !fecha){omitidosSinFecha++;continue;}
+      rows.push({PERIODO:colPeriodo?String(r[colPeriodo]||'').replace('.0',''):'',NRC_COD:nrcCod,NOMBRE_CURSO:colNomCurso?String(r[colNomCurso]||''):'',FECHA_INICIO:fecha,RUT:colRut?String(r[colRut]||'').replace('.0',''):'',NOMBRE:colNombre?String(r[colNombre]||''):'',CORREO_UNAB:colCorreoU?String(r[colCorreoU]||''):'',Columna7:colCorreoP?String(r[colCorreoP]||''):''});
+    }
+    return {format:formato,rows,omitidosSinFecha};
+  }
+  if(formato==='Alumno Potencial')return {format:formato,rows:t1ParseAlumnoPotencial(rawRows)};
+  if(formato==='CSV de curso / Canvas'){
+    const rowsObj=await readFile(file,true),rows=[];
+    for(const r of rowsObj){const ns=String(r['Nombre de sección']||r['Nombre de secci  n']||'').trim(),rut=String(r['Identificación de SIS del estudiante']||r['Identificacion de SIS del estudiante']||'').trim(),nombre=String(r['Nombre del estudiante']||'').trim(),correo=String(r['Correo electrónico']||r['Correo electronico']||'').trim().toLowerCase();if(!rut||!correo.includes('@'))continue;let periodo='';if(ns){const m=ns.match(/^(\d{6})/);if(m)periodo=m[1];}let nc='';if(ns&&ns.includes('|'))nc=ns.split('|')[1].trim();rows.push({PERIODO:periodo,NRC_COD:'',NOMBRE_CURSO:nc,FECHA_INICIO:'',RUT:rut,NOMBRE:nombre.toUpperCase(),CORREO_UNAB:correo,Columna7:''});}
+    return {format:formato,rows};
+  }
+  return {format:formato,rows:t1ParseGenerico(rawRows)};
+}
+function t1MostrarResultado(rows,formato,cursoCompletado=false){
+  const resultEl=document.getElementById('t1-result'),ae=document.getElementById('t1-actions');
+  const faltaCurso=!t1TieneCurso(rows);
+  const unicos=new Set(rows.map(r=>r.RUT+'|'+(r.NRC_COD_CAL_FILTRO||r.NRC_COD||''))).size;
+  resultEl.innerHTML=`<div class="alert success">✅ <strong>${rows.length}</strong> registros válidos · Formato: <strong>${formato||'—'}</strong>${cursoCompletado?' · Curso aplicado desde nrcs.json':''}</div>`+t1ResumenOmitidosHTML();
+  const td=document.createElement('div');resultEl.appendChild(td);renderTable(rows,td);
+  const box=document.getElementById('t1-course-box');
+  if(faltaCurso){box.classList.add('visible');ae.style.display='none';resultEl.insertAdjacentHTML('beforeend','<div class="alert info">ℹ️ Para continuar, selecciona el curso/NRC de estos estudiantes.</div>');}
+  else{box.classList.remove('visible');ae.style.display='flex';}
+}
+async function processTab1(){
+  const resultEl=document.getElementById('t1-result'),ae=document.getElementById('t1-actions');ae.style.display='none';document.getElementById('t1-sp-result').innerHTML='';
+  resultEl.innerHTML='<div class="alert info"><span class="spinner"></span> Procesando nómina...</div>';
+  try{
+    const mode=state.t1Mode;let filas=[];
+    if(mode==='universal'||mode==='diario'){
+      if(!state.t1Files.length){resultEl.innerHTML='<div class="alert error">Selecciona al menos un archivo.</div>';return;}
+      state.t1OmitidosSemipres=[];state.t1OmitidosSinFecha=0;state.t1NoIdentificadosModalidad=[];
+      const formatos=new Set();
+      for(const file of state.t1Files){const x=await t1ProcesarArchivoUniversal(file);formatos.add(x.format);filas.push(...x.rows);state.t1OmitidosSinFecha+=Number(x.omitidosSinFecha||0);}
+      const fechaF=document.getElementById('t1-fecha').value,nrcF=document.getElementById('t1-nrcs').value.trim().toUpperCase();
+      if(fechaF)filas=filas.filter(r=>!r.FECHA_INICIO||anyToISO(r.FECHA_INICIO)===fechaF);
+      if(nrcF)filas=filas.filter(r=>String(r.NRC_COD||'').toUpperCase().includes(nrcF)||String(r.NRC_COD_CAL_FILTRO||'').toUpperCase().includes(nrcF));
+      filas=t1FinalizarRows(filas);
+      const mod=t1FiltrarModalidad(filas);filas=mod.permitidos;state.t1OmitidosSemipres=mod.omitidos;state.t1NoIdentificadosModalidad=mod.noIdentificados;
+      if(!filas.length){resultEl.innerHTML='<div class="alert error">No quedaron estudiantes válidos después de aplicar las reglas de fecha y modalidad.</div>'+t1ResumenOmitidosHTML();return;}
+      state.t1DetectedFormat=[...formatos].join(' + ');state.t1Data=filas;
+      if(state.t1SelectedCourse&&!t1TieneCurso(filas)){state.t1Data=t1FinalizarRows(t1AplicarCurso(filas,state.t1SelectedCourse));const modSel=t1FiltrarModalidad(state.t1Data);state.t1Data=modSel.permitidos;state.t1OmitidosSemipres.push(...modSel.omitidos);state.t1NoIdentificadosModalidad.push(...modSel.noIdentificados);}
+      t1MostrarResultado(state.t1Data,state.t1DetectedFormat,!!state.t1SelectedCourse);
+    }else if(mode==='version'){
+      await tvProcesar();
+    }else if(mode==='manual'){
+      const nrcCod=document.getElementById('t1m-nrccod').value.trim(),fechaInicio=document.getElementById('t1m-fecha').value;
+      if(!nrcCod||!fechaInicio||!state.t1mFiles.length){resultEl.innerHTML='<div class="alert error">Completa NRC_COD, FECHA INICIO y sube el CSV.</div>';return;}
+      const nf=await processCSVManual(state.t1mFiles[0],nrcCod,fechaInicio);if(!nf.length){resultEl.innerHTML='<div class="alert error">No se encontraron registros válidos.</div>';return;}
+      state.t1mAccumulated.push(...nf);let manualFinal=t1FinalizarRows(state.t1mAccumulated);const modManual=t1FiltrarModalidad(manualFinal);state.t1Data=modManual.permitidos;state.t1OmitidosSemipres=modManual.omitidos;state.t1NoIdentificadosModalidad=modManual.noIdentificados;state.t1OmitidosSinFecha=0;state.t1DetectedFormat='CSV manual / Canvas';state.t1mAccumulated=[...state.t1Data];renderAccumulatedTable();document.getElementById('btn-clear-accum').style.display='inline-flex';ae.style.display=state.t1Data.length?'flex':'none';if(state.t1OmitidosSemipres.length||state.t1NoIdentificadosModalidad.length)document.getElementById('t1-result').insertAdjacentHTML('afterbegin',t1ResumenOmitidosHTML());
+    }else{
+      const txt=document.getElementById('t1-rawtext').value;if(!txt.trim()){resultEl.innerHTML='<div class="alert error">Pega el texto en el campo.</div>';return;}
+      filas=t1FinalizarRows(parseWebTextBlocks(txt));if(!filas.length){resultEl.innerHTML='<div class="alert error">No se encontraron registros válidos.</div>';return;}
+      state.t1OmitidosSinFecha=0;const modTexto=t1FiltrarModalidad(filas);filas=modTexto.permitidos;state.t1OmitidosSemipres=modTexto.omitidos;state.t1NoIdentificadosModalidad=modTexto.noIdentificados;if(!filas.length){resultEl.innerHTML='<div class="alert error">Todos los registros fueron excluidos por las reglas de modalidad.</div>'+t1ResumenOmitidosHTML();return;}
+      state.t1Data=filas;state.t1DetectedFormat='Texto web';t1MostrarResultado(filas,'Texto web');
+    }
+  }catch(err){resultEl.innerHTML=`<div class="alert error">Error al procesar: ${err.message}</div>`;console.error(err);}
+}
+function t1DescargarProcesados(){
+  if(!state.t1Data||!state.t1Data.length)return;
+  const ts=new Date().toISOString().replace(/[-:T]/g,'').substring(0,14);exportXLSXConTabla(state.t1Data,'Estudiantes_Formateados_'+ts+'.xlsx');
+}
+async function t1EnviarDirectoSharePoint(){
+  const el=document.getElementById('t1-sp-result');
+  if(!state.t1Data||!state.t1Data.length){el.innerHTML='<div class="alert error">No hay registros procesados.</div>';return;}
+  if(!t1TieneCurso(state.t1Data)){el.innerHTML='<div class="alert error">Falta asignar curso/NRC antes de cargar.</div>';return;}
+  if(!T1_FLOW_URL){el.innerHTML='<div class="alert info">⚙️ La carga directa está preparada, pero falta conectar la URL del nuevo flujo de Power Automate.</div>';return;}
+  if(state.t1Mode==='version' && !confirm('CONFIRMAR CARGA MASIVA: se enviarán '+state.t1Data.length+' registros a SharePoint. ¿Ha verificado que los estudiantes corresponden a todos los NRC seleccionados y que el flujo gestiona registros existentes?'))return;
+  const payload={origen:'Centro Herramientas ETOP',fechaEnvio:new Date().toISOString(),total:state.t1Data.length,formato:state.t1DetectedFormat,metadatosCarga:state.t1Mode==='version'?state.t1BulkMeta:null,estudiantes:state.t1Data};
+  el.innerHTML='<div class="alert info"><span class="spinner"></span> Enviando '+state.t1Data.length+' estudiantes a Power Automate...</div>';
+  try{
+    const res=await fetch(T1_FLOW_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    let data={};try{data=await res.json();}catch(_){data={};}
+    if(!res.ok&&res.status!==202)throw new Error('HTTP '+res.status+' '+res.statusText);
+    if(res.status===202 || data.estado==='aceptado' || data.status==='accepted'){
+      el.innerHTML=`<div class="alert success">✅ <strong>${state.t1Data.length}</strong> estudiantes enviados correctamente. Power Automate aceptó la carga y continuará procesándola en segundo plano.</div>`;
+      return;
+    }
+    const creados=data.creados??data.created??'—',existentes=data.existentes??data.duplicates??'—',errores=data.errores??data.errors??'—';
+    el.innerHTML=`<div class="alert success">✅ Solicitud procesada. Recibidos: <strong>${state.t1Data.length}</strong> · Creados: <strong>${creados}</strong> · Ya existentes: <strong>${existentes}</strong> · Errores: <strong>${errores}</strong></div>`;
+  }catch(err){el.innerHTML='<div class="alert error">Error al cargar: '+err.message+'</div>';}
+}
+
+function isAlumnoPotencialNomina(hRow){const j=hRow.map(c=>String(c||'')).join('|').toLowerCase();return j.includes('alumno potencial')&&j.includes('dv');}
+function procesarAlumnoPotencial(rawRows,p){
+  const{tn,tc,ta,pr,ni,c1,c2,fi,ff}=p,headers=rawRows[0].map(h=>String(h||'').trim());
+  const fi2=i=>headers.findIndex(h=>h.toLowerCase().includes(i.toLowerCase()));
+  const iRut=headers.findIndex(h=>h.toLowerCase().includes('rut (alumno')),iDv=headers.findIndex(h=>h.toLowerCase().includes('dv (alumno')),iNom=headers.findIndex(h=>h.toLowerCase().includes('nombre (alumno')),iCor=fi2('correo electrónico');
+  const salida=[];
+  for(let i=1;i<rawRows.length;i++){
+    const row=rawRows[i];if(!row||row.every(c=>!String(c||'').trim()))continue;
+    const correo=iCor!==-1?String(row[iCor]||'').trim().toLowerCase():'';if(!correo||!correo.includes('@'))continue;
+    const rutBase=iRut!==-1?String(row[iRut]||'').replace('.0','').trim():'',dvVal=iDv!==-1?String(row[iDv]||'').replace('.0','').trim().toUpperCase():'';
+    const rut=t1NormalizarRut(rutBase,dvVal);
+    const nRaw=iNom!==-1?String(row[iNom]||'').trim():'',nombre=(nRaw&&nRaw.toLowerCase()!=='nan')?nRaw.toUpperCase():'';
+    const fila={'Columna1':salida.length+1,'NOMBRES':nombre,'Rut o ID':rut,'CORREO':correo,'NOMBRE TUTOR':tn,'CORREO TUTOR':tc,'ANEXO TUTOR':ta,'NOMBRE DE PROGRAMA':pr,'NRC Y NOMBRE DE CURSO INDUCC':ni,'NOMBRE PRIMER CURSO':c1,'FECHA INICIO INDUCCION':fi,'FECHA TERMINO INDUCCION':ff,'FECHA_INICIO_CALCULADA':fi,'FECHA FIN CALCULADA':ff,'Columna2':'Pendiente'};
+    if(c2)fila['NOMBRE SEGUNDO CURSO']=c2;salida.push(fila);
+  }
+  return salida;
+}
+
+async function processTab2(){
+  const re=document.getElementById('t2-result'),ae=document.getElementById('t2-actions');ae.style.display='none';
+  re.innerHTML='<div class="alert info"><span class="spinner"></span> Construyendo plantilla...</div>';
+  if(!state.t2File){re.innerHTML='<div class="alert error">Sube la nómina original primero.</div>';return;}
+  try{
+    const rawRows=await readFile(state.t2File,false);
+    const tn=document.getElementById('t2-tn').value||document.getElementById('t2-tutor-sel').value,tc=document.getElementById('t2-tc').value,ta=document.getElementById('t2-ta').value,pr=document.getElementById('t2-pr').value,ni=document.getElementById('t2-ni').value||document.getElementById('t2-ni-display').value,c1=document.getElementById('t2-c1').value,c2=document.getElementById('t2-c2').value.trim(),fi=document.getElementById('t2-fi').value,ff=document.getElementById('t2-ff').value;
+    let salida=[];
+    if(isAlumnoPotencialNomina(rawRows[0]||[])){salida=procesarAlumnoPotencial(rawRows,{tn,tc,ta,pr,ni,c1,c2,fi,ff});}
+    else{
+      let hIdx=-1;for(let i=0;i<Math.min(20,rawRows.length);i++){const rs=rawRows[i].join(' ').toUpperCase();if((rs.includes('RUT')||rs.includes('ID'))&&(rs.includes('CORREO')||rs.includes('EMAIL')||rs.includes('MAIL'))){hIdx=i;break;}}
+      const headers=hIdx!==-1?rawRows[hIdx].map(h=>String(h).toUpperCase().trim()):rawRows[0].map((_,i)=>`C${i}`);
+      const dataRows=rawRows.slice(hIdx+1);const seenH=new Set(),fH=[];for(const h of headers){fH.push(seenH.has(h)?h+'_R':h);seenH.add(h);}
+      const emailRe=/[a-zA-Z0-9._\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,rutRe=/\b(\d{7,8}-?[0-9Kk])\b/i;
+      for(const rr of dataRows){
+        const r={};fH.forEach((h,i)=>r[h]=String(rr[i]??''));const rs=Object.values(r).join(' ');if(!rs.includes('@'))continue;
+        const emails=rs.match(emailRe)||[];let cp=emails.find(e=>!e.toLowerCase().includes('@uandresbello.edu'))||'';if(!cp&&emails.length)cp=emails[0].toLowerCase();if(!cp)continue;cp=cp.toLowerCase();
+        const rc=fH.find(h=>h.includes('RUT')||h.includes('ID'));let rut='';if(rc&&r[rc]){const v=String(r[rc]).replace('.0','').trim().toUpperCase();if(/^\d{7,9}-?[0-9Kk]$/i.test(v))rut=v;}if(!rut){const m=rs.match(rutRe);if(m)rut=m[1].toUpperCase();}
+        const nc=fH.find(h=>h.includes('NOMBRE')&&!h.includes('TUTOR')),ac=fH.find(h=>h.includes('APELLIDO'));const pt=[];if(nc&&r[nc]&&r[nc].toLowerCase()!=='nan')pt.push(r[nc].trim());if(ac&&r[ac]&&r[ac].toLowerCase()!=='nan')pt.push(r[ac].trim());const nombre=pt.join(' ').trim().toUpperCase()||'';
+        const fila={'Columna1':salida.length+1,'NOMBRES':nombre,'Rut o ID':rut,'CORREO':cp,'NOMBRE TUTOR':tn,'CORREO TUTOR':tc,'ANEXO TUTOR':ta,'NOMBRE DE PROGRAMA':pr,'NRC Y NOMBRE DE CURSO INDUCC':ni,'NOMBRE PRIMER CURSO':c1,'FECHA INICIO INDUCCION':fi,'FECHA TERMINO INDUCCION':ff,'FECHA_INICIO_CALCULADA':fi,'FECHA FIN CALCULADA':ff,'Columna2':'Pendiente'};
+        if(c2)fila['NOMBRE SEGUNDO CURSO']=c2;salida.push(fila);
+      }
+    }
+    if(!salida.length){re.innerHTML='<div class="alert info">No se encontraron correos válidos.</div>';return;}
+    state.t2Data=salida;re.innerHTML=`<div class="alert success">🎉 Plantilla generada. <span class="badge">${salida.length}</span> registros.</div>`;
+    const td=document.createElement('div');re.appendChild(td);renderTable(salida,td);ae.style.display='flex';
+  }catch(err){re.innerHTML=`<div class="alert error">Error: ${err.message}</div>`;}
+}
+function downloadTab2(){if(!state.t2Data)return;exportXLSXConTabla(state.t2Data,'Nomina_SharePoint_'+new Date().toISOString().replace(/[-:T]/g,'').substring(0,14)+'.xlsx');}
+
+function formatSyncDisplay(ds,ts){const dias=['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'],meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'],d=new Date(ds+'T00:00:00'),di=(d.getDay()+6)%7;return`${dias[di]} ${String(d.getDate()).padStart(2,'0')} DE ${meses[d.getMonth()]} ${ts} HRS`;}
+async function processTab3(){
+  const re=document.getElementById('t3-result'),ae=document.getElementById('t3-actions');ae.style.display='none';
+  re.innerHTML='<div class="alert info"><span class="spinner"></span> Construyendo invitaciones...</div>';
+  if(!state.t3File){re.innerHTML='<div class="alert error">Sube la nómina original primero.</div>';return;}
+  try{
+    const rawRows=await readFile(state.t3File,false);let hIdx=-1;
+    for(let i=0;i<Math.min(20,rawRows.length);i++){const rs=rawRows[i].join(' ').toUpperCase();if((rs.includes('RUT')||rs.includes('ID'))&&(rs.includes('CORREO')||rs.includes('EMAIL')||rs.includes('MAIL'))){hIdx=i;break;}}
+    const headers=hIdx!==-1?rawRows[hIdx].map(h=>String(h).toUpperCase().trim()):rawRows[0].map((_,i)=>`C${i}`);
+    const dataRows=rawRows.slice(hIdx+1);const seenH=new Set(),fH=[];for(const h of headers){fH.push(seenH.has(h)?h+'_R':h);seenH.add(h);}
+    const curso=document.getElementById('t3-curso').value,fIni=document.getElementById('t3-fechainicio').value,link=document.getElementById('t3-link').value,fcal=document.getElementById('t3-fechacal').value,fSes=document.getElementById('t3-fechasesion').value,hora=document.getElementById('t3-hora').value,cTut=document.getElementById('t3-correotutor').value,nTut=document.getElementById('t3-nombretutor').value;
+    const emailRe=/[a-zA-Z0-9._\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g,salida=[];
+    for(const rr of dataRows){
+      const r={};fH.forEach((h,i)=>r[h]=String(rr[i]??''));const rs=Object.values(r).join(' ');if(!rs.includes('@'))continue;
+      const emails=rs.match(emailRe)||[];let ce=emails.find(e=>!e.toLowerCase().includes('@uandresbello.edu'))||'';if(!ce&&emails.length)ce=emails[0].toLowerCase();if(!ce)continue;ce=ce.toLowerCase();
+      const nc=fH.find(h=>h.includes('NOMBRE')&&!h.includes('TUTOR')),ac=fH.find(h=>h.includes('APELLIDO'));const pt=[];if(nc&&r[nc]&&r[nc].toLowerCase()!=='nan')pt.push(r[nc].trim());if(ac&&r[ac]&&r[ac].toLowerCase()!=='nan')pt.push(r[ac].trim());const nombre=pt.join(' ').trim().toUpperCase();
+      salida.push({'NOMBRE ESTUDIANTE':nombre,'CORREO ESTUDIANTE':ce,'CURSO DE INDUCCION':curso,'FECHA INICIO CURSO DE INDUCCION':fIni?formatDateDMY(fIni):'','FECHA Y HORA SESION SINCRONICA':fSes?formatSyncDisplay(fSes,hora):'','FORMATO FECHA HORA':fSes?`${fSes} ${hora}`:'','LINK SESION SINCRONICA':link,'CORREO TUTOR':cTut,'NOMBRE TUTOR':nTut.toUpperCase(),'fechacal':fcal?formatDateSlash(fcal):''});
+    }
+    if(!salida.length){re.innerHTML='<div class="alert info">No se encontraron correos válidos.</div>';return;}
+    state.t3Data=salida;re.innerHTML=`<div class="alert success">🎉 Plantilla de invitación generada. <span class="badge">${salida.length}</span> registros.</div>`;
+    const td=document.createElement('div');re.appendChild(td);renderTable(salida,td);ae.style.display='flex';
+  }catch(err){re.innerHTML=`<div class="alert error">Error: ${err.message}</div>`;}
+}
+function downloadTab3(){if(!state.t3Data)return;exportXLSXConTabla(state.t3Data,'Envio_invitacion_sesion_sincronica_'+new Date().toISOString().replace(/[-:T]/g,'').substring(0,14)+'.xlsx');}
+
+function calNormalizarEncabezado(v){
+  return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[_./\\-]+/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+function calDetectarHeader(cols){
+  const cu=cols.map(calNormalizarEncabezado),hits={};
+  const KEYS={
+    nrc:['nrc','numero nrc','nrc curso'],
+    codigo:['codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','codigo asignatura','cod asignatura','abreviada','abreviatura','sigla','materia'],
+    nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','asignatura','curso'],
+    inicio:['fecha de inicio','fecha inicio','inicio de curso','inicio curso','inicio','desde'],
+    termino:['fecha de termino','fecha termino','fecha de fin','fecha fin','termino de curso','termino curso','termino','fin','hasta'],
+    periodo:['periodo'],
+    profesor:['nombre de profesor','nombre profesor','profesor','docente','academico','relator'],
+    facultad:['facultad'],
+    version:['version','version logica','version cohorte','version intake'],
+    rango:['fechas','rango de fechas','fecha inicio y fin','fecha de inicio y termino','fecha de inicio y término','periodo de clases']
+  };
+  for(const[campo,kws]of Object.entries(KEYS)){for(let i=0;i<cu.length;i++){if(kws.some(kw=>cu[i]===kw||cu[i].startsWith(kw+' '))){if(!(campo in hits))hits[campo]=i;}}}
+  // Algunos calendarios omiten el rótulo NRC, pero conservan su columna
+  // inmediatamente entre Término y Periodo.
+  if(hits.nrc===undefined&&hits.termino!==undefined&&hits.periodo!==undefined&&hits.periodo===hits.termino+2){
+    hits.nrc=hits.termino+1;
+  }
+  return Object.keys(hits).length>=2?hits:null;
+}
+function calValorATexto(v){
+  if(v instanceof Date&&!isNaN(v))return String(v.getDate()).padStart(2,'0')+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+v.getFullYear();
+  if(typeof v==='number'&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);if(d)return String(d.d).padStart(2,'0')+'-'+String(d.m).padStart(2,'0')+'-'+d.y;}
+  return String(v??'').replace(/[\\t\\r\\n]+/g,' ').trim();
+}
+async function t4CargarExcel(input){
+  const file=input.files&&input.files[0],status=document.getElementById('t4-archivo-status'),texto=document.getElementById('t4-texto');
+  if(!file)return;
+  status.innerHTML='<span class="spinner"></span> Leyendo archivo...';
+  try{
+    const buffer=await file.arrayBuffer(),wb=XLSX.read(buffer,{type:'array',cellDates:true});
+    let seleccion=null;
+    for(const nombreHoja of wb.SheetNames){
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja],{header:1,defval:'',raw:true});
+      const headerIndex=rows.findIndex(r=>Array.isArray(r)&&calDetectarHeader(r));
+      if(headerIndex>=0){seleccion={nombreHoja,rows:rows.slice(headerIndex)};break;}
+    }
+    if(!seleccion)throw new Error('No se encontró una hoja con encabezados reconocibles.');
+    texto.value=seleccion.rows.map(r=>r.map(calValorATexto).join('\t')).join('\n');
+    const header=seleccion.rows.find(r=>calDetectarHeader(r))||[];const mapa=calDetectarHeader(header)||{},detectados=Object.keys(mapa).map(k=>k.toUpperCase()).join(', ');
+    status.innerHTML='✅ Archivo cargado · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Campos detectados: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
+  }catch(err){
+    status.innerHTML='<span style="color:#b42318;">No se pudo leer el archivo: '+err.message+'</span>';
+    input.value='';
+  }
+}
+function calFmtFecha(v){
+  if(!v)return'';
+  const s=String(v).trim().replace(/\.+$/,'').trim();if(!s)return'';
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
+  let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2})$/);
+  if(m)return '20'+m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return s;
+}
+function calFechaCortaISO(valor, anio){
+  const m=String(valor||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/^(\d{1,2})[\s./-]+(ene|feb|mar|abr|may|jun|jul|ago|sep|sept|oct|nov|dic)$/);
+  if(!m)return '';
+  const meses={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,sept:9,oct:10,nov:11,dic:12};
+  const mes=meses[m[2]],dia=Number(m[1]),y=Number(anio);
+  if(!y||dia<1||dia>new Date(y,mes,0).getDate())return '';
+  return y+'-'+String(mes).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+}
+function calSepararRangoFechas(v){
+  const s=String(v||'').trim();
+  if(!s)return {inicio:'',termino:''};
+  const m=s.match(/(\d{1,2}[\/\-.]\d{1,2}[\/\-.](?:\d{2}|\d{4}))\s*(?:al|a|hasta|–|—|-)\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.](?:\d{2}|\d{4}))/i);
+  if(!m)return {inicio:calFmtFecha(s),termino:''};
+  return {inicio:calFmtFecha(m[1]),termino:calFmtFecha(m[2])};
+}
+function calHeaderPlano(v){
+  const n=calNormalizarEncabezado(v);
+  const mapa={
+    'nrc':'nrc','numero nrc':'nrc','nrc curso':'nrc',
+    'periodo':'periodo',
+    'codigo':'codigo','codigo curso':'codigo','codigo de curso':'codigo','codigo asignatura':'codigo','codigo de asignatura':'codigo','abreviada':'codigo',
+    'version':'version','version logica':'version',
+    'asignatura':'nombre','nombre asignatura':'nombre','nombre de asignatura':'nombre','nombre curso':'nombre','nombre de curso':'nombre',
+    'docente':'profesor','profesor':'profesor','nombre profesor':'profesor','nombre de profesor':'profesor',
+    'fecha inicio':'inicio','fecha de inicio':'inicio','inicio':'inicio',
+    'fecha fin':'termino','fecha de termino':'termino','fecha termino':'termino','fin':'termino',
+    'fechas':'rango','rango de fechas':'rango','fecha inicio y fin':'rango'
+  };
+  return mapa[n]||'';
+}
+function calConvertirTextoPlanoATabulado(texto){
+  // Outlook/Teams puede pegar una tabla HTML dejando cada celda en una línea.
+  // Si ya hay tabs, no tocamos nada.
+  if(String(texto).includes('\t'))return texto;
+  const lineas=String(texto).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  let ini=-1,headers=[];
+  for(let i=0;i<lineas.length;i++){
+    const hs=[];let j=i;
+    while(j<lineas.length){
+      const h=calHeaderPlano(lineas[j]);
+      if(!h)break;
+      hs.push({raw:lineas[j],canon:h});j++;
+    }
+    if(hs.length>=4){ini=i;headers=hs;break;}
+  }
+  if(ini<0)return texto;
+  const datos=lineas.slice(ini+headers.length);
+  if(datos.length<headers.length)return texto;
+  const out=[headers.map(h=>h.raw).join('\t')];
+  for(let i=0;i+headers.length<=datos.length;i+=headers.length){
+    out.push(datos.slice(i,i+headers.length).join('\t'));
+  }
+  return out.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// parsearTextoCalendario
+// Cambio v2025-07: NRC vacío → TMP-<CODIGO>-<YYYYMMDDTHHMM>-<SEQ>
+// Globalmente único: timestamp fijo por ejecución + secuencial local.
+// Sin columnas adicionales. Estructura del objeto idéntica a la versión anterior.
+// ═══════════════════════════════════════════════════════════════════════════════
+function calSumarMesesISO(fechaIso,meses){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fechaIso))return'';
+  const [y,m,d]=fechaIso.split('-').map(Number);
+  const ultimo=new Date(y,m-1+meses+1,0).getDate();
+  const fecha=new Date(y,m-1+meses,Math.min(d,ultimo));
+  return fecha.getFullYear()+'-'+String(fecha.getMonth()+1).padStart(2,'0')+'-'+String(fecha.getDate()).padStart(2,'0');
+}
+function parsearTextoCalendario(texto){
+  texto=calConvertirTextoPlanoATabulado(texto);
+  const NRC_PAT=/^\d{4,5}$/,lineas=texto.split('\n'),resultados=[];
+  let headerMap=null,mF='',mP='',mPer='',anioCurso=0,ultimaFechaInicio='';
+  const seenRows=new Set();
+  const now=new Date();
+  const ts=now.getFullYear().toString()
+    +(now.getMonth()+1).toString().padStart(2,'0')
+    +now.getDate().toString().padStart(2,'0')
+    +'T'
+    +now.getHours().toString().padStart(2,'0')
+    +now.getMinutes().toString().padStart(2,'0');
+  let tmpSeq=0;
+
+  for(const linea of lineas){
+    const cols=linea.split('\t'),cs=cols.map(c=>c.trim()),ne=cs.filter(Boolean);if(!ne.length)continue;const c0=cs[0].toLowerCase();
+    if(c0==='facultad'){const v=cs.slice(1).find(Boolean)||'';if(v)mF=v;}
+    if(c0.includes('nombre de programa')||c0.includes('nombre del programa')){const v=cs.slice(1).find(Boolean)||'';if(v)mP=v;}
+    if(c0.startsWith('período')||c0.startsWith('periodo')){const v=cs.slice(1).find(c=>/^\d{6}$/.test(c))||'';if(v)mPer=v;}
+    if(ne.length===1&&ne[0].length>30&&/magíster|master|mba|diplomado|ingeniería|educación|salud/i.test(ne[0])&&!/\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(ne[0]))mP=ne[0];
+    const hmap=calDetectarHeader(cs);if(hmap){headerMap=hmap;continue;}if(!headerMap)continue;
+    const ni=headerMap.nrc;
+    const nv=(ni!==undefined&&ni<cs.length)?cs[ni]:'';
+    const get=(c,d)=>{const i=headerMap[c];return(i!==undefined&&i<cs.length)?cs[i]:(d||'');};
+    let codigo=get('codigo').replace(/\s+/g,'').toUpperCase(),nombre=get('nombre');
+    const rangoCrudo=get('rango')||get('inicio');
+    const rango=calSepararRangoFechas(rangoCrudo);
+    const periodoRef=get('periodo')||mPer;
+    if(!anioCurso && /^20\d{4}$/.test(periodoRef))anioCurso=Number(periodoRef.slice(0,4));
+    let inicio=rango.inicio,termino=calFmtFecha(get('termino'))||rango.termino;
+    const cortaInicio=calFechaCortaISO(rangoCrudo,anioCurso||new Date().getFullYear());
+    if(cortaInicio){
+      const mesActual=Number(cortaInicio.slice(5,7));
+      const mesPrevio=ultimaFechaInicio?Number(ultimaFechaInicio.slice(5,7)):0;
+      if(mesPrevio&&mesActual<mesPrevio&&mesPrevio-mesActual>=5)anioCurso++;
+      inicio=calFechaCortaISO(rangoCrudo,anioCurso||new Date().getFullYear());
+    }
+    if(/^\d{4}-\d{2}-\d{2}$/.test(inicio))ultimaFechaInicio=inicio;
+    const cortaTermino=calFechaCortaISO(get('termino'),Number(inicio.slice(0,4)));
+    if(cortaTermino){
+      termino=cortaTermino<inicio?calFechaCortaISO(get('termino'),Number(inicio.slice(0,4))+1):cortaTermino;
+    }
+    const versionLogica=get('version').trim();
+    const periodoFila=get('periodo');
+    if(/^\d{6}$/.test(periodoFila))mPer=periodoFila;
+    const periodo=periodoFila||mPer;
+    let profesor=get('profesor').trim();const facultad=get('facultad')||mF;
+    if(!codigo&&nombre){const mm=nombre.match(/^([A-Z]{2,6}\d{3,4}[A-Z]?\d?)\s+(.+)$/i);if(mm){codigo=mm[1].replace(/\s+/g,'').toUpperCase();nombre=mm[2].trim();}}
+    if(!codigo&&/INDUCC/i.test(nombre))codigo='UNI118';
+    if(!profesor||/^(TUTOR DE ACOMPAÑAMIENTO|TUTOR|X|DEFINIR)$/i.test(profesor))profesor='POR DEFINIR';
+    if(!nombre&&!inicio)continue;
+    const FECHA_ISO=/^\d{4}-\d{2}-\d{2}$/;
+    if(!FECHA_ISO.test(inicio))continue;
+    if(/^5\s*mes(es)?\s*(aprox\.?|app\.?)?$/i.test(termino))termino=calSumarMesesISO(inicio,5);
+    if(termino&&!FECHA_ISO.test(termino))continue;
+    let nrcFinal='';
+    if(NRC_PAT.test(nv)){
+      nrcFinal=nv;
+      const duplicateKey=[nrcFinal,codigo,nombre,inicio,termino,periodo].join('|').toUpperCase();
+      if(seenRows.has(duplicateKey))continue;
+      seenRows.add(duplicateKey);
+    }else{
+      tmpSeq++;
+      const base=(codigo||nombre.replace(/[^A-Z0-9]/gi,'').toUpperCase().substring(0,6)||'CURSO');
+      nrcFinal='TMP-'+base+'-'+ts+'-'+String(tmpSeq).padStart(2,'0');
+    }
+    resultados.push({NRC:nrcFinal,PERIODO:periodo,FACULTAD:facultad,'CODIGO CURSO':codigo,'NOMBRE CURSO':nombre,'FECHA DE INICIO':inicio,'FECHA FIN':termino,'VERSION LOGICA':versionLogica,PROFESOR:profesor,_programa:mP});
+  }
+  return resultados;
+}
+
+function t4ParseVersionLogica(v){
+  const m=String(v||'').trim().toUpperCase().match(/^V?\s*([0-9A-Z]+)\s+(20\d{2})$/);
+  if(!m)return null;
+  const num=/^\d+$/.test(m[1])?m[1].padStart(2,'0'):m[1];
+  return {num,anio:m[2],etiqueta:'V'+String(parseInt(m[1],10)||m[1])+' '+m[2]};
+}
+function t4AnioDesdeIntake(intake){
+  const m=String(intake||'').match(/_\d{2}\.\d{2}\.(20\d{2})/);
+  return m?m[1]:'';
+}
+function t4ResolverIntakeExistente(materia,versionLogica){
+  const pv=t4ParseVersionLogica(versionLogica);if(!pv)return {estado:'sin-version',intake:'',pv:null};
+  const mat=t4Normalizar(materia).replace(/[^A-Z0-9]/g,'');
+  const candidatos=[...new Set((t2NrcsData||[])
+    .filter(r=>t4Normalizar(r.materia).replace(/[^A-Z0-9]/g,'')===mat)
+    .map(r=>String(r.intake||'').trim()).filter(Boolean)
+    .filter(i=>new RegExp('_VERSION_'+pv.num+'(?:_|$)','i').test(i)&&t4AnioDesdeIntake(i)===pv.anio))];
+  if(candidatos.length===1)return {estado:'existente',intake:candidatos[0],pv};
+  if(candidatos.length>1)return {estado:'ambiguo',intake:'',pv,candidatos};
+  return {estado:'nuevo',intake:'',pv};
+}
+function t4VersionManualCoincide(pv){
+  if(!pv)return false;
+  const vr=String(document.getElementById('t4-version-num').value||'').trim().toUpperCase();
+  const vn=/^\d+$/.test(vr)?vr.padStart(2,'0'):vr;
+  const fi=String(document.getElementById('t4-fecha-induccion').value||'');
+  const anio=fi.match(/^(20\d{2})-/)?.[1]||'';
+  return vn===pv.num&&anio===pv.anio;
+}
+
+
+// Para cohortes ya existentes, el tutor se hereda desde la base por curso.
+// Se cruza INTAKE + CODIGO CURSO porque un mismo intake puede cambiar de tutor
+// a lo largo de su trayectoria.
+function t4ResolverTutorExistente(intake,codigoCurso,fechaCurso){
+  const iKey=String(intake||'').trim();
+  const cKey=t4Normalizar(codigoCurso).replace(/[^A-Z0-9]/g,'');
+  if(!iKey)return {nombre:'',correo:'',encontrado:false,fuente:'sin-intake'};
+
+  const todosIntake=(t2NrcsData||[]).filter(r=>String(r.intake||'').trim()===iKey);
+  const conTutor=todosIntake.filter(r=>String(r.tutor||'').trim());
+  if(!conTutor.length)return {nombre:'',correo:'',encontrado:false,fuente:'sin-tutor-intake'};
+
+  const codigoRegistro=r=>t4Normalizar(r['codigo curso']??r['codigo_curso']??r.CODIGO_CURSO??'').replace(/[^A-Z0-9]/g,'');
+  const fechaRegistro=r=>String(r['fecha inicio']??r.fecha_inicio??r.FECHA_INICIO??'').substring(0,10);
+  const aMs=s=>{const m=String(s||'').match(/^(20\d{2})-(\d{2})-(\d{2})$/);return m?Date.UTC(+m[1],+m[2]-1,+m[3]):NaN;};
+  const target=aMs(fechaCurso);
+
+  function elegirMasCercano(lista){
+    if(!lista.length)return null;
+    if(!Number.isFinite(target))return lista[0];
+    const fechados=lista.map(r=>({r,ms:aMs(fechaRegistro(r))})).filter(x=>Number.isFinite(x.ms));
+    if(!fechados.length)return lista[0];
+    // Priorizar el tutor vigente inmediatamente antes (o en) la fecha del curso.
+    const anteriores=fechados.filter(x=>x.ms<=target).sort((a,b)=>b.ms-a.ms);
+    if(anteriores.length)return anteriores[0].r;
+    // Si el intake solo tiene registros posteriores, tomar el más próximo hacia adelante.
+    return fechados.sort((a,b)=>a.ms-b.ms)[0].r;
+  }
+
+  // 1) Coincidencia exacta por INTAKE + CÓDIGO DE CURSO.
+  const exactos=cKey?conTutor.filter(r=>codigoRegistro(r)===cKey):[];
+  let elegido=elegirMasCercano(exactos);
+  let fuente='curso';
+
+  // 2) Continuidad: si ese código aún no existe en el histórico del intake,
+  // heredar el tutor vigente/más cercano del mismo INTAKE.
+  if(!elegido){
+    elegido=elegirMasCercano(conTutor);
+    fuente='intake';
+  }
+
+  if(!elegido)return {nombre:'',correo:'',encontrado:false,fuente:'sin-coincidencia'};
+  const contacto=t4ContactoTutor(elegido.tutor);
+  const nombre=contacto.nombre;
+  const correo=contacto.correo;
+  return {nombre,correo,encontrado:!!nombre,fuente};
+}
+
+async function processTab4(){
+  const re=document.getElementById('t4-result'),ae=document.getElementById('t4-actions');ae.style.display='none';
+  re.innerHTML='<div class="alert info"><span class="spinner"></span> Procesando calendario...</div>';
+  const texto=document.getElementById('t4-texto').value;if(!texto.trim()){re.innerHTML='<div class="alert error">Sube el Excel o pega el bloque del calendario primero.</div>';return;}
+  try{
+    const filas=parsearTextoCalendario(texto);
+    if(!filas.length){re.innerHTML='<div class="alert error">No se pudieron extraer cursos. El formato pegado no pudo interpretarse. Revisa que incluya NRC/Periodo/Código/Versión y fechas.</div>';return;}
+    const materia=document.getElementById('t4-materia').value.trim(),intakeManual=document.getElementById('t4-intake').value.trim(),programa=document.getElementById('t4-programa').value.trim(),facultad=document.getElementById('t4-facultad').value.trim(),tipo=document.getElementById('t4-tipo').value.trim(),tutor=document.getElementById('t4-tutor').value.trim(),cTut=document.getElementById('t4-correotutor').value.trim();
+    if(!programa||!materia||!facultad||!tipo){re.innerHTML='<div class="alert error">Selecciona Programa, Materia, Facultad y Tipo de programa antes de procesar.</div>';return;}
+    const coordEmails=document.getElementById('t4-coord-value').value;
+    if(!coordEmails){re.innerHTML='<div class="alert error">Selecciona al menos un coordinador para completar la columna COORDINADION.</div>';return;}
+
+    const codigoManual=document.getElementById('t4-codigo-nuevo')?.value.trim().toUpperCase()||'';
+    if(codigoManual){for(const fila of filas){if(!String(fila['CODIGO CURSO']||'').trim())fila['CODIGO CURSO']=codigoManual;}}
+    const resoluciones=filas.map(f=>({f,res:t4ResolverIntakeExistente(materia,f['VERSION LOGICA'])}));
+    const ambiguos=resoluciones.filter(x=>x.res.estado==='ambiguo');
+    if(ambiguos.length){
+      re.innerHTML='<div class="alert error">Hay más de un intake posible para '+[...new Set(ambiguos.map(x=>x.res.pv.etiqueta))].join(', ')+'. Revisa la base antes de continuar.</div>';return;
+    }
+    const sinResolver=[];
+    resoluciones.forEach(x=>{
+      if(x.res.estado==='existente')x.intakeFinal=x.res.intake;
+      else if(x.res.estado==='nuevo'&&t4VersionManualCoincide(x.res.pv)&&intakeManual)x.intakeFinal=intakeManual;
+      else if(x.res.estado==='sin-version'&&intakeManual)x.intakeFinal=intakeManual;
+      else sinResolver.push(x);
+    });
+    if(sinResolver.length){
+      const etiquetas=[...new Set(sinResolver.map(x=>x.res.pv?.etiqueta||'(sin versión)'))];
+      re.innerHTML='<div class="alert info"><strong>🆕 Intake nuevo detectado:</strong> '+etiquetas.join(', ')+'. Completa arriba el número/letra de versión y la fecha de inicio de UNI118 para generar el intake propuesto. Luego vuelve a procesar.</div>';
+      return;
+    }
+
+    const coordClaims=coordEmails.split(';').filter(Boolean).map(c=>'i:0#.f|membership|'+c).join(';');
+    const tutoresSinCorreo=new Set();
+    let tutorPorContinuidad=0;
+    const salida=resoluciones.map(x=>{
+      const f=x.f;
+      let tutorFinal='',correoFinal='';
+      if(x.res.estado==='existente'){
+        const heredado=t4ResolverTutorExistente(x.intakeFinal,f['CODIGO CURSO'],f['FECHA DE INICIO']);
+        tutorFinal=heredado.nombre;
+        correoFinal=heredado.correo;
+        if(heredado.fuente==='intake')tutorPorContinuidad++;
+        if(tutorFinal&&!correoFinal)tutoresSinCorreo.add(tutorFinal);
+      }else{
+        // El selector manual se usa únicamente para la nueva versión.
+        const contactoNuevo=t4ContactoTutor(tutor);
+        tutorFinal=contactoNuevo.nombre||tutor;
+        correoFinal=cTut||contactoNuevo.correo;
+      }
+      const tutorClaimsFinal=correoFinal?'i:0#.f|membership|'+correoFinal:'';
+      return {'NRC':f.NRC,'PERIODO':f.PERIODO,'FACULTAD':facultad||f.FACULTAD,'MATERIA':materia,'TIPO_NRC':tipo,'CODIGO CURSO':f['CODIGO CURSO'],'NOMBRE CURSO':f['NOMBRE CURSO'],'FECHA DE INICIO':f['FECHA DE INICIO'],'FECHA FIN':f['FECHA FIN'],'INTAKE O VERSION':x.intakeFinal,'NOMBRE TUTOR':tutorFinal,'CORREO TUTOR':correoFinal,'Correo_Tutor_a':correoFinal,'COORDINADION':coordEmails,'Coordinadores_Emails_Texto':coordEmails,'Tutor_Claims':tutorClaimsFinal,'Coordinadores_Claims':coordClaims,'PROFESOR':f.PROFESOR,'NOMBRE_PROGRAMA':programa||f._programa};
+    });
+    state.t4Data=salida;
+    const intakes=[...new Set(salida.map(r=>r['INTAKE O VERSION']).filter(Boolean))];
+    for(const intake of intakes)cAutocompletarDesdeCalendario(programa,intake);
+    for(const row of salida){
+      const mail=String(row['CORREO TUTOR']||'').trim().toLowerCase();
+      if(mail&&cContactos().some(x=>x.correo.toLowerCase()===mail))cDestSel.add(mail);
+    }
+    cRenderDestinatarios();cGuardarLote();
+    const avisoTutor=tutoresSinCorreo.size?'<div class="alert info">ℹ️ Tutor(es) heredados desde nrcs.json sin correo configurado en esta herramienta: <strong>'+[...tutoresSinCorreo].join(', ')+'</strong>. El nombre quedó correcto; agrega su correo al mapa de tutores si necesitas completar CORREO TUTOR y Tutor_Claims.</div>':'';
+    re.innerHTML='<div class="alert success">🎉 '+salida.length+' cursos procesados · '+intakes.length+' intake(s) resuelto(s). Las versiones existentes heredaron su tutor desde nrcs.json; '+tutorPorContinuidad+' curso(s) de continuidad usaron el tutor vigente del mismo intake. El tutor seleccionado se aplicó solo a la versión nueva.</div>'+avisoTutor;
+    const td=document.createElement('div');re.appendChild(td);renderTable(salida,td);ae.style.display='flex';
+  }catch(err){re.innerHTML='<div class="alert error">Error: '+err.message+'</div>';}
+}
+
+function downloadTab4(){
+  if(!state.t4Data)return;const cols=Object.keys(state.t4Data[0]),ws=XLSX.utils.json_to_sheet(state.t4Data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Calendarios');
+  function colLetter(n){let s='';n++;while(n>0){n--;s=String.fromCharCode(65+(n%26))+s;n=Math.floor(n/26);}return s;}
+  const lastCol=colLetter(cols.length-1),lastRow=state.t4Data.length+1,tableRef='A1:'+lastCol+lastRow;
+  const tn='Calendarios_a_base';
+  const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="1" name="'+tn+'" displayName="'+tn+'" ref="'+tableRef+'" totalsRowShown="0"><autoFilter ref="'+tableRef+'"/><tableColumns>'+cols.map((c,i)=>'<tableColumn id="'+(i+1)+'" name="'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')+'"/>').join('')+'</tableColumns><tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>';
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'binary',compression:true});
+  injectTableIntoXlsx(wbout,xml,'Calendarios',tableRef).then(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Calendarios_a_base_'+new Date().toISOString().replace(/[-:T]/g,'').substring(0,14)+'.xlsx';a.click();URL.revokeObjectURL(a.href);});
+}
+// ═══ TAB 5: CARPETAS CREADAS ══════════════════════════════════════════════════
+let cCount=0, cHTML='';
+const C_LOTE_KEY='etop_centro_carpetas_lote_v1';
+let cRestoreBusy=false;
+function cGuardarLote(){
+  if(cRestoreBusy)return;
+  const snap={carpetas:cGetCarpetas(),programa:document.getElementById('c-intake')?.value||'',selected:[...cDestSel],cc:document.getElementById('c-cc')?.value||''};
+  try{localStorage.setItem(C_LOTE_KEY,JSON.stringify(snap))}catch(e){console.warn('No se pudo guardar lote ETOP',e)}
+}
+function cRestaurarLote(){
+  let snap;try{snap=JSON.parse(localStorage.getItem(C_LOTE_KEY)||'null')}catch(e){}
+  if(!snap||!Array.isArray(snap.carpetas))return false;
+  cRestoreBusy=true;
+  const cont=document.getElementById('c-carpetas');cont.innerHTML='';cCount=0;
+  for(const carpeta of snap.carpetas){
+    if(!carpeta?.nombre)continue;
+    cAdd();
+    document.getElementById('cn-'+cCount).value=carpeta.nombre;
+    document.getElementById('cv-'+cCount).checked=!!carpeta.verificado;
+  }
+  if(!cCount)cAdd();
+  document.getElementById('c-intake').value=snap.programa||'';
+  document.getElementById('c-cc').value=snap.cc||'';
+  cDestSel.clear();for(const mail of snap.selected||[])cDestSel.add(mail);
+  cRenderDestinatarios();
+  cRestoreBusy=false;return true;
+}
+
+const cDestSel=new Set();
+function cContactos(){
+  // Algunos coordinadores también existen en TUTORES_MAP. Mostrar cada correo solo una vez,
+  // priorizando su función de coordinación para evitar saludos y opciones duplicadas.
+  const registros=[...T4_COORDINADORES.map(x=>({...x,rol:'Coordinación'})),...Object.entries(TUTORES_MAP).map(([nombre,t])=>({nombre,correo:t.correo,rol:'Tutoría'}))];
+  const unicos=new Map();
+  for(const persona of registros){
+    const clave=String(persona.correo||'').trim().toLowerCase();
+    if(clave&&!unicos.has(clave))unicos.set(clave,persona);
+  }
+  return [...unicos.values()];
+}
+function cRenderDestinatarios(){const el=document.getElementById('c-destinatarios');if(!el)return;const q=(document.getElementById('c-buscar-dest')?.value||'').toLowerCase();el.innerHTML=cContactos().filter(x=>(x.nombre+' '+x.correo).toLowerCase().includes(q)).map(x=>'<label style="display:flex;gap:8px;padding:5px;border-bottom:1px solid #e2e8f0;align-items:center;font-size:12px"><input type="checkbox" data-mail="'+esc(x.correo)+'" '+(cDestSel.has(x.correo.toLowerCase())?'checked':'')+' onchange="cElegirDest(this)" style="width:auto"><span><strong>'+esc(x.nombre)+'</strong> <span style="color:#64748b">('+x.rol+')</span><br><small>'+esc(x.correo)+'</small></span></label>').join('')||'Sin resultados';cActualizarPara()}
+function cElegirDest(el){const email=el.dataset.mail.toLowerCase();if(el.checked)cDestSel.add(email);else cDestSel.delete(email);cActualizarPara();cGuardarLote()}
+function cActualizarPara(){
+  const personas=cContactos().filter(x=>cDestSel.has(x.correo.toLowerCase()));
+  document.getElementById('c-para').value=personas.map(x=>x.correo).join('; ');
+  document.getElementById('c-coord').value=[...new Set(personas.map(x=>x.nombre.trim()))].join(' - ');
+}
+function cCopiarIntakes(){const nombres=cGetCarpetas().map(c=>c.nombre).filter(Boolean);if(!nombres.length)return alert('Agrega versiones al lote.');navigator.clipboard.writeText(nombres.join('\n')).then(()=>alert('Intakes copiados. Pégalos en el flujo V4.'))}
+const C_HTTP_KEY='etop_carpeta_http_endpoint_local_v1';
+const C_OLD_HTTP_KEY='etop_carpeta_http_endpoint_session';
+function cEndpoint(){return localStorage.getItem(C_HTTP_KEY)||sessionStorage.getItem(C_OLD_HTTP_KEY)||''}
+function cImportarConexionDesdeEnlace(){
+  const hash=window.location.hash;
+  if(!hash.startsWith('#etop-flow='))return;
+  try{
+    const url=new URL(decodeURIComponent(hash.slice('#etop-flow='.length)));
+    if(url.protocol!=='https:'||!url.hostname.endsWith('.environment.api.powerplatform.com')||!url.pathname.includes('/triggers/manual/paths/invoke')||!url.searchParams.get('sig'))throw new Error('URL de flujo inválida');
+    localStorage.setItem(C_HTTP_KEY,url.toString());
+    window.history.replaceState(null,'',window.location.pathname+window.location.search);
+    const status=document.getElementById('c-estado-envio');if(status)status.textContent='✅ Conexión Power Automate configurada. Ya puedes crear carpetas y enviar el correo desde esta página.';
+  }catch(err){const status=document.getElementById('c-estado-envio');if(status)status.textContent='No se pudo activar la conexión: '+err.message}
+}
+
+let cProcesando=false;
+function cGuardarEndpoint(){
+ const input=document.getElementById('c-url-flujo');
+ const raw=input.value.trim().replace(/&amp;/g,'&');
+ let url;try{url=new URL(raw)}catch(e){return alert('La dirección HTTP no tiene un formato válido.')}
+ if(url.protocol!=='https:'||!url.hostname.endsWith('.environment.api.powerplatform.com')||!url.pathname.includes('/triggers/manual/paths/invoke')||!url.searchParams.get('sig'))return alert('Utiliza la URL HTTP POST completa que muestra Power Automate.');
+ try{localStorage.setItem(C_HTTP_KEY,url.toString());input.value='';document.getElementById('c-estado-envio').textContent='Dirección configurada en este navegador para futuros usos.'}catch(e){alert('No se pudo conservar la dirección en este navegador.')}
+}
+function cActualizarEstadoProceso(msg){document.getElementById('c-estado-envio').textContent=msg}
+async function cEjecutarLote(){
+ if(cProcesando)return;
+ const names=cGetCarpetas().map(x=>x.nombre).filter(Boolean);
+ const unique=[...new Set(names)];
+ if(!unique.length)return alert('Primero agrega al menos una versión.');
+ if(unique.length!==names.length)return alert('Existen versiones duplicadas en el lote. Corrígelas antes de continuar.');
+ const programa=document.getElementById('c-intake').value.trim();
+ if(!programa)return alert('Introduce el nombre del programa para el correo.');
+ const para=document.getElementById('c-para').value.trim();
+ if(!para)return alert('Selecciona al menos un coordinador o tutor destinatario.');
+ const endpoint=cEndpoint();
+ if(!endpoint)return alert('La conexión de Power Automate aún no se ha activado en este navegador.');
+ if(unique.some(x=>/[\\/:*?"<>|]/.test(x)))return alert('Revisa los nombres de las versiones: hay caracteres no permitidos en SharePoint.');
+ const coord=document.getElementById('c-coord').value.trim()||'Coordinación académica';
+ const html=cBuildEmail(coord,programa,unique.map(nombre=>({nombre})));
+ const asunto='ETOP · Calendarios registrados y carpetas creadas · '+unique.length+' versión'+(unique.length===1?'':'es');
+ const payload={intakes:unique,para,cc:document.getElementById('c-cc').value.trim(),asunto,html};
+ const signature=JSON.stringify({intakes:unique,para,cc:payload.cc,asunto});
+ const previous=localStorage.getItem('etop_ultimo_envio_lote');
+ if(previous===signature&&!confirm('Este lote ya se envió durante esta sesión. ¿Ejecutarlo y enviar nuevamente?'))return;
+ if(!confirm('Se solicitará crear '+unique.length+' carpetas y enviar UN correo institucional a: '+para+'. ¿Confirmar envío?'))return;
+ const boton=document.getElementById('c-boton-ejecutar');
+ cProcesando=true;boton.disabled=true;cActualizarEstadoProceso('Procesando en Power Automate. No cierres esta pestaña.');
+ try{
+  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  let result={};try{result=await response.json()}catch(e){}
+  if(!response.ok)throw new Error('HTTP '+response.status+(result.message?' · '+result.message:''));
+  localStorage.setItem('etop_ultimo_envio_lote',signature);
+  const texto=result.mensaje||result.estado||'Solicitud recibida';
+  cActualizarEstadoProceso('Power Automate respondió: '+texto+'. Comprueba el historial para confirmar el envío del correo y las carpetas.');
+  cHTML=html;document.getElementById('c-rendered').innerHTML='<div class="c-email-box">'+html+'</div>';document.getElementById('c-rendered').style.display='block';document.getElementById('c-empty').style.display='none';document.getElementById('c-code-pre').textContent=html;
+ }catch(err){
+  const blocked=err instanceof TypeError || /Failed to fetch|NetworkError|Load failed|fetch failed/i.test(err.message||'');
+  const reason=blocked?'El navegador no pudo completar la solicitud HTTP. Es posible que Power Automate haya bloqueado la petición previa por CORS o haya ocurrido un error de red.':'Power Automate devolvió un error durante la solicitud.';
+  cActualizarEstadoProceso('❌ '+reason+' Detalle: '+(err.message||String(err))+'. Revisa el HISTORIAL DE EJECUCIÓN del flujo HTTP: si no aparece una ejecución a esta hora, la solicitud no llegó al disparador. No vuelvas a enviarla antes de comprobarlo.');
+ }finally{cProcesando=false;boton.disabled=false}
+}
+function cAbrirOutlook(){if(!cHTML)cGenerar();if(!cHTML)return;const para=document.getElementById('c-para').value;if(!para)return alert('Selecciona destinatarios.');const cc=document.getElementById('c-cc').value;const subject='ETOP · Calendarios y carpetas creadas · '+cGetCarpetas().length+' versiones';const body='Se encuentran disponibles las carpetas de los siguientes intakes:\n'+cGetCarpetas().map(x=>'• '+x.nombre).join('\n')+'\n\nFavor respaldar nómina y calendarios, correos de bienvenida, invitaciones sincrónicas y QA2.';const p=new URLSearchParams({to:para,subject,body});if(cc)p.set('cc',cc);window.open('https://outlook.office.com/mail/deeplink/compose?'+p.toString(),'_blank','noopener,noreferrer');alert('Se abrió el borrador. Para mantener el formato institucional, utiliza Copiar correo y pega en el cuerpo de Outlook antes de enviar.')}
+
+
+function cAdd(){
+  cCount++;
+  const cont=document.getElementById('c-carpetas');
+  const div=document.createElement('div');div.className='c-carpeta-item';div.id=`ci-${cCount}`;
+  div.innerHTML=`
+    <div class="c-item-hdr">
+      <span class="c-num-badge">CARPETA ${cCount}</span>
+      <button class="c-btn-rm" onclick="cRemove(${cCount})">✕ Quitar</button>
+    </div>
+    <div class="form-group">
+      <label>Nombre de la carpeta</label>
+      <input type="text" id="cn-${cCount}" placeholder="Ej: MOL_INTAKE_27.10.202583_SECC01" />
+    </div>
+    <div class="form-group">
+      <label>Estado de la carpeta</label><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cv-${cCount}" style="width:auto"/> Creada y verificada en SharePoint</label>
+    </div>`;
+  cont.appendChild(div);cRenum();cGuardarLote();
+}
+
+function cRemove(id){const el=document.getElementById(`ci-${id}`);if(el)el.remove();cRenum();cGuardarLote();}
+
+function cRenum(){
+  document.querySelectorAll('.c-carpeta-item').forEach((row,i)=>{
+    const b=row.querySelector('.c-num-badge');if(b)b.textContent=`CARPETA ${i+1}`;
+  });
+}
+
+function cGetCarpetas(){
+  const rows=document.querySelectorAll('.c-carpeta-item');const out=[];
+  rows.forEach(row=>{
+    const id=row.id.split('-')[1];
+    const nombre=document.getElementById(`cn-${id}`)?.value.trim();
+    const verificado=!!document.getElementById(`cv-${id}`)?.checked;
+    if(nombre)out.push({nombre,verificado});
+  });
+  return out;
+}
+
+function cAutocompletarDesdeCalendario(programa,intake){
+  const coordNames=T4_COORDINADORES.filter(c=>t4CoordSel.has(c.correo)).map(c=>c.nombre);
+  document.getElementById('c-coord').value=coordNames.join(' - ');
+  document.getElementById('c-intake').value=programa;
+  const existentes=cGetCarpetas();
+  if(intake&&!existentes.some(x=>x.nombre.toUpperCase()===intake.toUpperCase())){
+    let row=[...document.querySelectorAll('.c-carpeta-item')].find(x=>!x.querySelector('input[type=text]')?.value.trim());
+    if(!row){cAdd();row=document.getElementById('ci-'+cCount)}
+    row.querySelector('input[type=text]').value=intake;
+  }
+  for(const c of T4_COORDINADORES.filter(x=>t4CoordSel.has(x.correo)))cDestSel.add(c.correo.toLowerCase());
+  cRenderDestinatarios();cGuardarLote();
+}
+
+function cAbrirNotificacion(){cRenderDestinatarios();
+  const btn=[...document.querySelectorAll('.tab-btn')].find(b=>(b.getAttribute('onclick')||'').includes('switchTab(4'));
+  switchTab(4,btn);window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function cBuildEmail(coord,intake,carpetas){
+  const LOGO='https://res.cloudinary.com/dk53pztfo/image/upload/v1771043944/ChatGPT_Image_13_feb_2026_10_56_20_p.m._lf5z44.png';
+  const cRows=carpetas.map(c=>{
+    const carpeta=`<strong style="color:#0097A7;font-size:14px;word-break:break-all;">${esc(c.nombre)}</strong>`;
+    return `
+    <tr>
+      <td style="padding:5px 0;">
+        <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+          <tr>
+            <td style="background:#F0F4FA;border-left:5px solid #0097A7;padding:11px 16px;font-family:'Segoe UI',Arial,sans-serif;">
+              <span style="font-size:15px;margin-right:6px;">📁</span>
+              ${carpeta}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#ffffff;">
+<table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#ffffff;">
+  <tr>
+    <td style="background:#1B3A6B;padding:18px 32px;">
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="vertical-align:middle;width:1%;padding-right:16px;white-space:nowrap;">
+            <img src="${LOGO}" alt="ETOP" height="52" style="display:block;border:0;height:52px;" />
+          </td>
+          <td style="vertical-align:middle;">
+            <span style="color:#ffffff;font-size:12px;font-weight:700;font-family:'Segoe UI',Arial,sans-serif;letter-spacing:0.5px;display:block;">Equipo de Tutoría Online de Postgrado</span>
+            <span style="color:rgba(255,255,255,0.65);font-size:10.5px;font-family:'Segoe UI',Arial,sans-serif;letter-spacing:0.3px;">Universidad Andrés Bello · UNAB Online</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr><td style="background:#0097A7;height:4px;font-size:0;">&nbsp;</td></tr>
+  <tr>
+    <td style="padding:32px 32px 28px;background:#ffffff;">
+      <p style="font-size:15px;color:#1A2035;margin:0 0 14px;font-family:'Segoe UI',Arial,sans-serif;">
+        Estimado(a) Coordinador(a): <strong>${esc(coord)}</strong>
+      </p>
+      <p style="font-size:14px;color:#3D4A66;line-height:1.7;margin:0 0 26px;font-family:'Segoe UI',Arial,sans-serif;">
+        Junto con saludar, informo que los calendarios de las versiones detalladas fueron ingresados a la base de calendarios ETOP y se han creado sus carpetas correspondientes para el programa <strong style="color:#1A2035;">${esc(intake)}</strong>.
+      </p>
+      <p style="font-size:13.5px;font-weight:700;color:#1B3A6B;text-decoration:underline;margin:0 0 12px;font-family:'Segoe UI',Arial,sans-serif;">
+        Versiones e intakes con carpetas creadas:
+      </p>
+      <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:28px;">
+        ${cRows}
+      </table>
+      <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td style="background:#FFFBEC;border-left:5px solid #C8A951;padding:16px 20px;">
+            <p style="font-size:13.5px;font-weight:700;color:#1B3A6B;text-decoration:underline;margin:0 0 12px;font-family:'Segoe UI',Arial,sans-serif;">
+              Favor solicito:
+            </p>
+            <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="width:22px;padding:5px 6px 5px 0;vertical-align:top;font-size:13px;color:#0097A7;font-weight:700;font-family:'Segoe UI',Arial,sans-serif;">✔</td>
+                <td style="font-size:14px;color:#3D4A66;padding:5px 0;line-height:1.5;font-family:'Segoe UI',Arial,sans-serif;">Respaldar nómina y calendarios del Intake.</td>
+              </tr>
+              <tr>
+                <td style="width:22px;padding:5px 6px 5px 0;vertical-align:top;font-size:13px;color:#0097A7;font-weight:700;font-family:'Segoe UI',Arial,sans-serif;">✔</td>
+                <td style="font-size:14px;color:#3D4A66;padding:5px 0;line-height:1.5;font-family:'Segoe UI',Arial,sans-serif;">Respaldar envío de correos de bienvenida.</td>
+              </tr>
+              <tr>
+                <td style="width:22px;padding:5px 6px 5px 0;vertical-align:top;font-size:13px;color:#0097A7;font-weight:700;font-family:'Segoe UI',Arial,sans-serif;">✔</td>
+                <td style="font-size:14px;color:#3D4A66;padding:5px 0;line-height:1.5;font-family:'Segoe UI',Arial,sans-serif;">Respaldar envío de invitación sincrónica.</td>
+              </tr>
+              <tr>
+                <td style="width:22px;padding:5px 6px 5px 0;vertical-align:top;font-size:13px;color:#0097A7;font-weight:700;font-family:'Segoe UI',Arial,sans-serif;">✔</td>
+                <td style="font-size:14px;color:#3D4A66;padding:5px 0;line-height:1.5;font-family:'Segoe UI',Arial,sans-serif;">Respaldar QA2 confeccionados con el formulario automatizado.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+function cGenerar(){
+  const coord=document.getElementById('c-coord').value.trim();
+  const intake=document.getElementById('c-intake').value.trim();
+  const carpetas=cGetCarpetas();
+  if(!coord){alert('Ingresa el nombre del coordinador/tutora.');return;}
+  if(!intake){alert('Ingresa el nombre del programa/intake.');return;}
+  if(!carpetas.length){alert('Agrega al menos una carpeta.');return;}
+  if(!carpetas.every(x=>x.verificado)){alert('Debes verificar en SharePoint todas las carpetas antes de afirmar su creación en el correo.');return;}
+  cHTML=cBuildEmail(coord,intake,carpetas);
+  const rendered=document.getElementById('c-rendered');
+  rendered.innerHTML=`<div class="c-email-box">${cHTML}</div>`;
+  rendered.style.display='block';
+  document.getElementById('c-empty').style.display='none';
+  document.getElementById('c-code-pre').textContent=cHTML;
+}
+
+function cTab(tab,btn){
+  document.querySelectorAll('.c-tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('c-preview-body').style.display=tab==='preview'?'block':'none';
+  document.getElementById('c-code-area').style.display=tab==='code'?'block':'none';
+}
+
+function cCopiar(){
+  if(!cHTML){alert('Primero genera el correo.');return;}
+  const btn=document.getElementById('c-copy-btn');
+  const toast=document.getElementById('etop-toast');
+  const showOk=()=>{
+    btn.textContent='✅ Copiado';btn.classList.add('copied');toast.classList.add('show');
+    setTimeout(()=>{btn.innerHTML='📋 Copiar correo';btn.classList.remove('copied');toast.classList.remove('show');},2600);
+  };
+  try{
+    const blob=new Blob([cHTML],{type:'text/html'});
+    const item=new ClipboardItem({'text/html':blob});
+    navigator.clipboard.write([item]).then(showOk).catch(()=>{navigator.clipboard.writeText(cHTML).then(showOk);});
+  }catch(e){navigator.clipboard.writeText(cHTML).then(showOk);}
+}
+
+function cReset(){
+  const coord=document.getElementById('c-coord');if(coord)coord.value='';
+  const intake=document.getElementById('c-intake');if(intake)intake.value='';
+  const cont=document.getElementById('c-carpetas');if(cont)cont.innerHTML='';
+  cCount=0;cHTML='';cDestSel.clear();cRenderDestinatarios();try{localStorage.removeItem(C_LOTE_KEY)}catch(e){}
+  const r=document.getElementById('c-rendered');if(r){r.style.display='none';r.innerHTML='';}
+  const e=document.getElementById('c-empty');if(e)e.style.display='flex';
+  const cp=document.getElementById('c-code-pre');if(cp)cp.textContent='';
+  const pb=document.getElementById('c-preview-body');if(pb)pb.style.display='block';
+  const ca=document.getElementById('c-code-area');if(ca)ca.style.display='none';
+  document.querySelectorAll('.c-tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  cAdd();
+}
+
+// ─── MAPA TUTORES COMPLETO (Tab 2 y Tab 4) ───────────────────────────────────
+const TUTORES_MAP = {
+  'HANS NOVAKOVIC':          {correo:'tutoriaonline45@unab.cl', nombre:'Hans Novakovic',                           anexo:'600 585 8550 Anexo 7261'},
+  'KIMBERLY JORQUERA':       {correo:'tutoriaonline52@unab.cl', nombre:'Kimberly Jorquera Sepúlveda',              anexo:'600 585 8550 Anexo 7284'},
+  'MARTA GONZALEZ':          {correo:'marta.gonzalez@unab.cl',  nombre:'Marta Teresa Gonzalez Luque',              anexo:'600 585 8550 Anexo 5216'},
+  'DANITZA JANSEN':          {correo:'danitza.jansen@unab.cl',  nombre:'Danitza Alejandra Jansen Jara',            anexo:'600 585 8550 Anexo 5866'},
+  'SYLVIA VALENZUELA':       {correo:'sylvia.valenzuela@unab.cl',nombre:'Sylvia Valenzuela Herrera',               anexo:'600 585 8550 Anexo 5873'},
+  'PAULA PARDO':             {correo:'tutoriaonline82@unab.cl', nombre:'Paula Natalia Pardo Gaete',                anexo:'600 585 8550 Anexo 1285'},
+  'MARIA FERNANDA GONZALEZ': {correo:'tutoriaonline41@unab.cl', nombre:'María Fernanda González Valenzuela',       anexo:'600 585 8550 Anexo 5644'},
+  'BARBARA ROJAS':           {correo:'barbara.rojas.c@unab.cl', nombre:'Barbara Belen Rojas Castro',               anexo:'600 585 8550 Anexo 7260'},
+  'CONSTANZA CONTRERAS':     {correo:'tutoriaonline56@unab.cl', nombre:'Constanza Contreras Palma',                anexo:'600 585 8550 Anexo 8201'},
+  'CARLA PEÑA':              {correo:'tutoriaonline54@unab.cl', nombre:'Carla Peña',                               anexo:'600 585 8550 Anexo 7361'},
+  'CARLA PENA':              {correo:'tutoriaonline54@unab.cl', nombre:'Carla Peña',                               anexo:'600 585 8550 Anexo 7361'}, // alias sin tilde
+  'NOEMI PAZ':               {correo:'tutoriaonline08@unab.cl', nombre:'Noemí Paz',                                anexo:'600 585 8550 Anexo 1288'},
+  'ORIETTA CORTES':          {correo:'tutoriaonline04@unab.cl', nombre:'Orietta Cortes',                           anexo:'600 585 8550 Anexo 5230'},
+  'HECTOR TAPIA':            {correo:'tutoriaonline23@unab.cl', nombre:'Héctor Tapia Ruminado',                    anexo:'600 585 8550 Anexo 5685'},
+  'CONSUELO PARGA':          {correo:'tutoriaonline70@unab.cl', nombre:'Consuelo Parga',                           anexo:'600 585 8550 Anexo 1273'},
+  'FRANCISCA INDA':          {correo:'tutoriaonline75@unab.cl', nombre:'Francisca Inda',                           anexo:'600 585 8550 Anexo 1278'},
+  'JAVIERA ROJAS':           {correo:'tutoriaonline76@unab.cl', nombre:'Javiera Rojas',                            anexo:'600 585 8550 Anexo 1279'},
+  'ALYSON HERNANDEZ':        {correo:'tutoriaonline72@unab.cl', nombre:'Alyson Francisca Hernández Valenzuela',    anexo:'600 585 8550 Anexo 5245'},
+  'CAROLINA MONSALVE':       {correo:'carolina.monsalve.g@unab.cl', nombre:'Carolina Monsalve',                   anexo:'600 585 8550 Anexo 0000'},
+  'PATRICIO COLLAO':         {correo:'patricio.collao@unab.cl', nombre:'Patricio Alejandro Collao Farfan',         anexo:'600 585 8550 Anexo 0000'},
+  'FELIPE GARCIA':           {correo:'felipe.garcia@unab.cl',   nombre:'Felipe Garcia Cornejo',                   anexo:'600 585 8550 Anexo 0000'},
+  'RITA GALVEZ':             {correo:'rita.galvez@unab.cl',     nombre:'Rita Gálvez',                             anexo:'600 585 8550 Anexo 0000'},
+  'MIGUEL ROSALES':          {correo:'tutoriaonline16@unab.cl', nombre:'Miguel Rosales Salazar',                   anexo:'600 585 8550 Anexo 0000'},
+  'PABLO ALDERETE':          {correo:'tutoriaonline47@unab.cl', nombre:'Pablo Alderete',                           anexo:'600 585 8550 Anexo 0000'},
+  'DANIELA CORNEJO':         {correo:'tutoriaonline36@unab.cl', nombre:'Daniela Cornejo',                          anexo:'600 585 8550 Anexo 0000'},
+  'POR DEFINIR':             {correo:'pordefinir@unab.cl',      nombre:'Por Definir',                             anexo:'600 585 8550'}
+};
+
+// ─── FUNCIONES TAB 2 — AUTOCOMPLETE TUTOR Y BUSCADOR NRC ─────────────────────
+let t2NrcsData = [];
+
+async function t2CargarNrcs(){
+  const statusEl = document.getElementById('t2-nrcs-status');
+  try {
+    const r = await fetch('https://raw.githubusercontent.com/tutoriaonlinepostgrado/sitiowebetop/main/nrcs.json');
+    t2NrcsData = await r.json();
+    if(statusEl) statusEl.innerHTML = '✅ <strong>'+t2NrcsData.length+'</strong> cursos cargados desde nrcs.json';
+    t4CargarCatalogos();
+    setTimeout(()=>{if(statusEl)statusEl.style.display='none';}, 3000);
+  } catch(e) {
+    if(statusEl) statusEl.innerHTML = '⚠️ No se pudo cargar nrcs.json — ingresa los datos manualmente.';
+  }
+}
+
+function t2AutoTutor(){
+  const key = document.getElementById('t2-tutor-sel').value;
+  const t = TUTORES_MAP[key];
+  if(t){
+    document.getElementById('t2-tn').value = t.nombre;
+    document.getElementById('t2-tc').value = t.correo;
+    document.getElementById('t2-ta').value = t.anexo;
+  } else {
+    document.getElementById('t2-tn').value = '';
+    document.getElementById('t2-tc').value = '';
+    document.getElementById('t2-ta').value = '';
+  }
+}
+
+function t2BuscarNrc(){
+  const q = document.getElementById('t2-nrc-search').value.trim().toLowerCase();
+  const dd = document.getElementById('t2-nrc-dropdown');
+  const opts = document.getElementById('t2-nrc-options');
+  if(!q || q.length < 2){ dd.style.display='none'; return; }
+  const resultados = t2NrcsData.filter(r =>
+    (r.nrc||'').toLowerCase().includes(q) ||
+    (r.tutor||'').toLowerCase().includes(q) ||
+    (r.facultad||'').toLowerCase().includes(q)
+  ).slice(0, 30);
+  if(!resultados.length){ dd.style.display='none'; return; }
+  opts.innerHTML = '';
+  resultados.forEach(r => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:0.5rem 0.9rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s;';
+    div.onmouseenter = ()=>div.style.background='rgba(246,193,40,0.08)';
+    div.onmouseleave = ()=>div.style.background='transparent';
+    div.innerHTML = '<span style="color:#f6c128;font-size:0.78rem;font-weight:700;font-family:IBM Plex Mono,monospace;">'+r.nrc+'</span>'
+      +'<br><span style="color:#95a3b8;font-size:0.72rem;">'+r.tutor+' · '+r.facultad
+      +' · Inicio: '+(r['fecha inicio']||'—')+' · Fin: '+(r['fecha fin']||'—')+'</span>';
+    div.onclick = ()=>t2SeleccionarNrc(r);
+    opts.appendChild(div);
+  });
+  dd.style.display = 'block';
+}
+
+function t2SeleccionarNrc(r){
+  document.getElementById('t2-nrc-search').value = r.nrc;
+  document.getElementById('t2-ni').value = r.nrc;
+  document.getElementById('t2-ni-display').value = r.nrc;
+  if(r['fecha inicio']) document.getElementById('t2-fi').value = r['fecha inicio'];
+  if(r['fecha fin'])    document.getElementById('t2-ff').value = r['fecha fin'];
+  // Autocompletar tutor si coincide
+  if(r.tutor && TUTORES_MAP[r.tutor.toUpperCase()]){
+    const key = r.tutor.toUpperCase();
+    document.getElementById('t2-tutor-sel').value = key;
+    t2AutoTutor();
+  }
+  document.getElementById('t2-nrc-dropdown').style.display = 'none';
+}
+
+// Cerrar dropdowns NRC al clic fuera
+document.addEventListener('click', function(e){
+  [['t2-nrc-search','t2-nrc-dropdown'],['t3-nrc-search','t3-nrc-dropdown']].forEach(([inpId,ddId])=>{
+    const inp=document.getElementById(inpId);
+    const dd=document.getElementById(ddId);
+    if(inp&&dd&&!inp.contains(e.target)&&!dd.contains(e.target)) dd.style.display='none';
+  });
+});
+
+// ─── FUNCIONES TAB 3 — BUSCADOR NRC SINCRÓNICA ───────────────────────────────
+function t3BuscarNrc(){
+  const q=document.getElementById('t3-nrc-search').value.trim().toLowerCase();
+  const dd=document.getElementById('t3-nrc-dropdown');
+  const opts=document.getElementById('t3-nrc-options');
+  if(!q||q.length<2){dd.style.display='none';return;}
+  const resultados=t2NrcsData.filter(r=>
+    (r.nrc||'').toLowerCase().includes(q)||
+    (r.tutor||'').toLowerCase().includes(q)||
+    (r.facultad||'').toLowerCase().includes(q)
+  ).slice(0,30);
+  if(!resultados.length){dd.style.display='none';return;}
+  opts.innerHTML='';
+  resultados.forEach(r=>{
+    const div=document.createElement('div');
+    div.style.cssText='padding:0.5rem 0.9rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s;';
+    div.onmouseenter=()=>div.style.background='rgba(246,193,40,0.08)';
+    div.onmouseleave=()=>div.style.background='transparent';
+    div.innerHTML='<span style="color:#f6c128;font-size:0.78rem;font-weight:700;font-family:IBM Plex Mono,monospace;">'+r.nrc+'</span>'
+      +'<br><span style="color:#95a3b8;font-size:0.72rem;">'+r.tutor+' · '+r.facultad
+      +' · Inicio: '+(r['fecha inicio']||'—')+'</span>';
+    div.onclick=()=>t3SeleccionarNrc(r);
+    opts.appendChild(div);
+  });
+  dd.style.display='block';
+}
+
+function t3SeleccionarNrc(r){
+  document.getElementById('t3-nrc-search').value=r.nrc;
+  document.getElementById('t3-curso').value=r.nrc;
+  if(r['fecha inicio']) document.getElementById('t3-fechainicio').value=r['fecha inicio'];
+  // Autocomplete tutor
+  const key=(r.tutor||'').toUpperCase();
+  const t=TUTORES_MAP[key];
+  if(t){
+    document.getElementById('t3-nombretutor').value=t.nombre;
+    document.getElementById('t3-correotutor').value=t.correo;
+  } else if(r.tutor){
+    document.getElementById('t3-nombretutor').value=r.tutor;
+  }
+  document.getElementById('t3-nrc-dropdown').style.display='none';
+}
+
+// ─── TUTORES Y COORDINADORES TAB 4 ───────────────────────────────────────────
+// T4_TUTORES usa TUTORES_MAP definido arriba
+const T4_TUTORES = Object.fromEntries(Object.entries(TUTORES_MAP).map(([k,v])=>[k,v.correo]));
+
+const T4_COORDINADORES = [
+  {nombre:'CAROLINA MONSALVE', correo:'carolina.monsalve.g@unab.cl'},
+  {nombre:'PATRICIO COLLAO',   correo:'patricio.collao@unab.cl'},
+  {nombre:'FELIPE GARCIA',     correo:'felipe.garcia@unab.cl'},
+  {nombre:'RITA GALVEZ',       correo:'rita.galvez@unab.cl'},
+  {nombre:'MIGUEL ROSALES',    correo:'tutoriaonline16@unab.cl'},
+  {nombre:'PABLO ALDERETE',    correo:'tutoriaonline47@unab.cl'},
+  {nombre:'DANIELA CORNEJO',   correo:'tutoriaonline36@unab.cl'}
+];
+
+function t4Normalizar(v){
+  return String(v||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+}
+
+function t4TutorCanonico(nombre){
+  const k=t4Normalizar(nombre);
+  const alias={
+    'CARLA PENA':'CARLA PEÑA',
+    'ORIETTA CORTES':'ORIETTA CORTES'
+  };
+  return alias[k] || String(nombre||'').trim().toUpperCase();
+}
+function t4ContactoTutor(nombre){
+  const canon=t4TutorCanonico(nombre);
+  const keyDirecto=Object.keys(TUTORES_MAP).find(k=>t4Normalizar(k)===t4Normalizar(canon));
+  const t=keyDirecto?TUTORES_MAP[keyDirecto]:null;
+  return {nombre:canon,correo:t?.correo||'',anexo:t?.anexo||''};
+}
+
+function t4Unicos(filas,campo){
+  return [...new Set(filas.map(r=>String(r[campo]||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'es',{numeric:true,sensitivity:'base'}));
+}
+
+function t4LlenarSelect(id,valores,placeholder,conservar){
+  const sel=document.getElementById(id);if(!sel)return;
+  const previo=conservar?sel.value:'';
+  sel.innerHTML='<option value="">— '+placeholder+' —</option>'+valores.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(previo&&valores.includes(previo))sel.value=previo;
+}
+
+const T4_CUSTOM_CATALOG_KEY='etop_t4_catalogo_manual_v1';
+let t4Custom=[];
+try{const c=JSON.parse(localStorage.getItem(T4_CUSTOM_CATALOG_KEY)||'[]');if(Array.isArray(c))t4Custom=c.filter(x=>x&&x.programa&&x.materia)}catch(e){}
+function t4GuardarCatalogo(){try{localStorage.setItem(T4_CUSTOM_CATALOG_KEY,JSON.stringify(t4Custom))}catch(e){alert('El navegador no pudo guardar el catálogo personalizado.')}}
+function t4RegistrosCatalogo(){
+ const orig=Array.isArray(t2NrcsData)?t2NrcsData:[];
+ return orig.concat(t4Custom.map(x=>({'nombre programa':x.programa,materia:x.materia,facultad:x.facultad})));
+}
+function t4AgregarPrograma(){
+ const nombre=prompt('Nombre completo del nuevo programa académico:');
+ if(nombre===null)return;
+ const programa=nombre.trim();
+ if(!programa)return alert('Ingresa un nombre de programa.');
+ const original=t4RegistrosCatalogo().find(x=>t4Normalizar(x['nombre programa'])===t4Normalizar(programa));
+ if(original){document.getElementById('t4-programa').value=original['nombre programa'];t4ProgramaCambio();return alert('El programa ya existe. Quedó seleccionado; puedes añadirle una materia nueva.')}
+ const code=prompt('Materia o sigla que identifica al programa (ej. MGPC, MAPS):');
+ if(code===null)return;
+ const materia=code.trim().toUpperCase();
+ if(!/^[A-Z0-9]{2,20}$/.test(materia))return alert('La materia debe contener entre 2 y 20 letras o números.');
+ const faculty=prompt('Código de facultad (ej. FEDU_INNOVADO, MEDI, ENFE):');
+ if(faculty===null)return;
+ const facultad=faculty.trim().toUpperCase();
+ if(!facultad)return alert('Debes indicar la facultad.');
+ t4Custom.push({programa,materia,facultad});
+ t4GuardarCatalogo();t4CargarCatalogos();
+ document.getElementById('t4-programa').value=programa;t4ProgramaCambio();
+ document.getElementById('t4-materia').value=materia;
+ document.getElementById('t4-facultad').value=facultad;t4ProponerIntake();
+}
+function t4AgregarMateria(){
+ const programa=document.getElementById('t4-programa').value;
+ if(!programa)return alert('Primero selecciona o agrega un programa.');
+ const code=prompt('Nueva materia o sigla para '+programa+':');
+ if(code===null)return;
+ const materia=code.trim().toUpperCase();
+ if(!/^[A-Z0-9]{2,20}$/.test(materia))return alert('Utiliza entre 2 y 20 letras o números.');
+ const related=t4RegistrosCatalogo().filter(x=>t4Normalizar(x['nombre programa'])===t4Normalizar(programa));
+ if(related.some(x=>t4Normalizar(x.materia)===materia)){document.getElementById('t4-materia').value=related.find(x=>t4Normalizar(x.materia)===materia).materia;return alert('La materia ya existe y quedó seleccionada.')}
+ const fac=prompt('Código de facultad para esta materia:',document.getElementById('t4-facultad').value||related[0]?.facultad||'');
+ if(fac===null)return;
+ const facultad=fac.trim().toUpperCase();if(!facultad)return alert('Debe indicar la facultad.');
+ t4Custom.push({programa,materia,facultad});t4GuardarCatalogo();t4ProgramaCambio(true);
+ document.getElementById('t4-materia').value=materia;document.getElementById('t4-facultad').value=facultad;t4ProponerIntake();
+}
+
+function t4CargarCatalogos(){
+  const estado=document.getElementById('t4-catalogos-status');
+  if(!t4RegistrosCatalogo().length){
+    if(estado)estado.textContent='⚠️ Sin catálogo disponible. Puedes agregar programas y materias manualmente.';
+    return;
+  }
+  t4LlenarSelect('t4-programa',t4Unicos(t4RegistrosCatalogo(),'nombre programa'),'Selecciona programa',true);
+  t4ProgramaCambio(true);
+  if(estado)estado.innerHTML='✅ Opciones cargadas desde la base vigente. Programa, Materia y Facultad quedarán vinculados.';
+}
+
+function t4ProgramaCambio(conservar){
+  const programa=document.getElementById('t4-programa').value;
+  const clave=t4Normalizar(programa);
+  const catalogo=t4RegistrosCatalogo();
+  const relacionadas=clave?catalogo.filter(r=>t4Normalizar(r['nombre programa'])===clave):catalogo;
+  t4LlenarSelect('t4-materia',t4Unicos(relacionadas,'materia'),'Selecciona materia',!!conservar);
+  t4LlenarSelect('t4-facultad',t4Unicos(relacionadas,'facultad'),'Selecciona facultad',!!conservar);
+  const facultades=t4Unicos(relacionadas,'facultad');
+  if(facultades.length===1)document.getElementById('t4-facultad').value=facultades[0];
+  const materias=t4Unicos(relacionadas,'materia');
+  if(materias.length===1)document.getElementById('t4-materia').value=materias[0];
+  t4ProponerIntake();
+}
+
+function t4PrefijoPrograma(programa){
+  const p=t4Normalizar(programa);
+  if(p.includes('MAGISTER')||p.includes('MASTER'))return 'MAG';
+  if(p.includes('DIPLOMADO'))return 'DIP';
+  if(p.includes('POSTITULO'))return 'POST';
+  if(p.includes('ESPECIALIDAD'))return 'ESP';
+  return 'PROG';
+}
+
+function t4ProponerIntake(){
+  const programa=document.getElementById('t4-programa').value;
+  const materia=t4Normalizar(document.getElementById('t4-materia').value).replace(/[^A-Z0-9]/g,'');
+  const versionRaw=String(document.getElementById('t4-version-num').value||'').trim().toUpperCase();
+  const version=/^\d+$/.test(versionRaw)?versionRaw.padStart(2,'0'):versionRaw.replace(/[^A-Z0-9]/g,'');
+  const fecha=document.getElementById('t4-fecha-induccion').value;
+  if(!programa||!materia||!version||!fecha)return;
+  const [yyyy,mm,dd]=fecha.split('-');
+  document.getElementById('t4-intake').value=t4PrefijoPrograma(programa)+'_'+materia+'_VERSION_'+version+'_'+dd+'.'+mm+'.'+yyyy;
+}
+
+// Set de coordinadores seleccionados (correos)
+const t4CoordSel = new Set();
+
+function t4AutoCorreo(){
+  const sel=document.getElementById('t4-tutor').value;
+  const contacto=t4ContactoTutor(sel);
+  document.getElementById('t4-correotutor').value=contacto.correo||'';
+}
+
+function t4CoordToggle(){
+  const dd=document.getElementById('t4-coord-dropdown');
+  dd.style.display=dd.style.display==='none'?'block':'none';
+}
+
+function t4CoordInit(){
+  const cont=document.getElementById('t4-coord-options');
+  cont.innerHTML='';
+  T4_COORDINADORES.forEach(c=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:0.6rem;padding:0.55rem 1rem;cursor:pointer;transition:background 0.1s;';
+    row.onmouseenter=()=>row.style.background='rgba(246,193,40,0.08)';
+    row.onmouseleave=()=>row.style.background='transparent';
+    const chk=document.createElement('div');
+    chk.id='t4chk-'+c.correo.replace(/[@.]/g,'_');
+    chk.style.cssText='width:16px;height:16px;border-radius:4px;border:2px solid #95a3b8;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;';
+    const lbl=document.createElement('div');
+    lbl.innerHTML='<span style="color:#fff;font-size:0.88rem;font-weight:600;">'+c.nombre+'</span><br><span style="color:#95a3b8;font-size:0.75rem;">'+c.correo+'</span>';
+    row.appendChild(chk);row.appendChild(lbl);
+    row.onclick=()=>t4CoordToggleItem(c, chk);
+    cont.appendChild(row);
+  });
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', function t4Outside(e){
+    const chips=document.getElementById('t4-coord-chips');
+    const dd=document.getElementById('t4-coord-dropdown');
+    if(chips&&dd&&!chips.contains(e.target)&&!dd.contains(e.target)){
+      dd.style.display='none';
+    }
+  });
+}
+
+function t4CoordToggleItem(c, chkEl){
+  if(t4CoordSel.has(c.correo)){
+    t4CoordSel.delete(c.correo);
+    chkEl.style.background='transparent';
+    chkEl.style.borderColor='#95a3b8';
+    chkEl.innerHTML='';
+  }else{
+    t4CoordSel.add(c.correo);
+    chkEl.style.background='#f6c128';
+    chkEl.style.borderColor='#f6c128';
+    chkEl.innerHTML='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#17202d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  t4CoordRenderChips();
+}
+
+function t4CoordRenderChips(){
+  const chips=document.getElementById('t4-coord-chips');
+  const ph=document.getElementById('t4-coord-placeholder');
+  // Limpiar chips anteriores (mantener placeholder)
+  Array.from(chips.children).forEach(ch=>{if(ch.id!=='t4-coord-placeholder')ch.remove();});
+  if(t4CoordSel.size===0){
+    ph.style.display='';
+    document.getElementById('t4-coord-value').value='';
+    return;
+  }
+  ph.style.display='none';
+  const selArr=T4_COORDINADORES.filter(c=>t4CoordSel.has(c.correo));
+  selArr.forEach(c=>{
+    const chip=document.createElement('span');
+    chip.style.cssText='background:rgba(246,193,40,0.18);border:1px solid rgba(246,193,40,0.5);color:#f6c128;font-size:0.75rem;font-weight:700;padding:0.18rem 0.55rem;border-radius:20px;display:inline-flex;align-items:center;gap:0.35rem;white-space:nowrap;';
+    chip.dataset.correo=c.correo;
+    chip.innerHTML=c.nombre+' <span style="cursor:pointer;font-size:0.9rem;line-height:1;">×</span>';
+    chip.querySelector('span').addEventListener('click',function(e){e.stopPropagation();t4CoordRemove(c.correo);});
+    chips.insertBefore(chip, ph);
+  });
+  // Valor hidden: correos separados por ;
+  document.getElementById('t4-coord-value').value=selArr.map(c=>c.correo).join(';');
+}
+
+function t4CoordRemove(correo){
+  t4CoordSel.delete(correo);
+  // Desmarcar checkbox
+  const id='t4chk-'+correo.replace(/[@.]/g,'_');
+  const chk=document.getElementById(id);
+  if(chk){chk.style.background='transparent';chk.style.borderColor='#95a3b8';chk.innerHTML='';}
+  t4CoordRenderChips();
+}
+
+
+ // ─── CARGA MASIVA POR INTAKE / VERSION ────────────────────────────────────────
+ const tvState={selected:new Set(),sourceRows:[],courses:[],files:[],selectedIntake:''};
+ function tvEsc(s){return String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+ function tvGetIntake(r){return t1Get(r,['intake','INTAKE','intake o version','INTAKE O VERSION']);}
+ function tvCatalog(){
+   const seen=new Set();
+   return (t2NrcsData||[]).filter(r=>{
+     if(!t1CursoPermitidoCatalogo(r))return false;
+     const c=t1CursoDesdeCatalogo(r),k=c.NRC_COD_CAL_FILTRO;
+     if(!k||!c.NRC_COD||!c.PERIODO||seen.has(k))return false;
+     seen.add(k);return true;
+   });
+ }
+ function tvRefreshIntakes(){
+   const el=document.getElementById('tv-intakes');if(!el)return;
+   const values=[...new Set(tvCatalog().map(tvGetIntake).filter(Boolean))].sort();
+   el.replaceChildren(...values.map(v=>{const o=document.createElement('option');o.value=v;return o;}));
+ }
+ function tvRenderCursos(){
+   const input=document.getElementById('tv-search'),el=document.getElementById('tv-cursos');
+   if(!input||!el)return;
+   const q=t1Norm(input.value);tvRefreshIntakes();
+   if(!q){tvState.courses=[];tvState.selected.clear();el.innerHTML='<div class="alert info">Escriba un intake / versión para consultar cursos.</div>';tvCoverage();return;}
+   const catalog=tvCatalog(), exact=catalog.filter(r=>t1Norm(tvGetIntake(r))===q);
+   const matches=exact.length?exact:catalog.filter(r=>t1Norm(tvGetIntake(r)).includes(q));
+   const intakes=[...new Set(matches.map(tvGetIntake))];
+   if(intakes.length!==1){
+     tvState.courses=[];tvState.selected.clear();
+     el.innerHTML='<div class="alert info">'+(intakes.length?'Hay '+intakes.length+' versiones coincidentes. Escriba o elija una versión completa para evitar mezclar cohortes.':'No se encontraron cursos elegibles.')+'</div>';tvCoverage();return;
+   }
+   const intake=intakes[0];tvState.selectedIntake=intake;tvState.courses=catalog.filter(r=>tvGetIntake(r)===intake);
+   const allowed=new Set(tvState.courses.map(r=>t1CursoDesdeCatalogo(r).NRC_COD_CAL_FILTRO));
+   tvState.selected=new Set([...tvState.selected].filter(k=>allowed.has(k)));
+   el.innerHTML='<table><thead><tr><th>Seleccionar</th><th>NRC</th><th>Curso</th><th>Inicio</th><th>Tutor</th></tr></thead><tbody>'+tvState.courses.map(r=>{
+     const c=t1CursoDesdeCatalogo(r),k=c.NRC_COD_CAL_FILTRO;
+     return '<tr><td><input type="checkbox" data-tv-nrc="'+tvEsc(k)+'" '+(tvState.selected.has(k)?'checked':'')+' onchange="tvToggle(this)"></td><td>'+tvEsc(k)+'</td><td>'+tvEsc(c.NOMBRE_CURSO)+'</td><td>'+tvEsc(c.FECHA_INICIO)+'</td><td>'+tvEsc(r.tutor||'')+'</td></tr>';
+   }).join('')+'</tbody></table>';
+   tvCoverage();
+ }
+ function tvToggle(el){const k=el.dataset.tvNrc;if(el.checked)tvState.selected.add(k);else tvState.selected.delete(k);tvCoverage();}
+ function tvMarcar(on){if(on)tvState.courses.forEach(r=>tvState.selected.add(t1CursoDesdeCatalogo(r).NRC_COD_CAL_FILTRO));else tvState.selected.clear();document.querySelectorAll('[data-tv-nrc]').forEach(x=>x.checked=on);tvCoverage();}
+ function tvArchivoCambiado(){tvState.files=[...document.getElementById('tv-files').files];document.getElementById('tv-file-name').textContent=tvState.files.map(x=>x.name).join(', ');}
+ function tvCoverage(unique){
+   const el=document.getElementById('tv-coverage');if(!el)return;
+   const total=tvState.courses.length,sel=tvState.selected.size,n=Number(unique)||0;
+   el.innerHTML='<strong>Tablero de cobertura de la carga preparada</strong><div style="margin-top:.5rem">Versión: '+tvEsc(tvState.selectedIntake||'—')+' · Cursos del catálogo: <strong>'+total+'</strong> · NRC seleccionados: <strong>'+sel+'</strong> · Sin seleccionar: <strong>'+(total-sel)+'</strong> · Estudiantes únicos: <strong>'+n+'</strong> · Registros proyectados: <strong>'+(n*sel)+'</strong></div><div style="background:#15202c;border-radius:7px;overflow:hidden;height:10px;margin-top:10px"><div style="background:#f6c128;width:'+(total?100*sel/total:0)+'%;height:100%"></div></div><div style="font-size:.79rem;margin-top:.5rem">Este indicador mide la selección de esta operación, NO la cobertura real de SharePoint.</div>';
+ }
+ function tvParsePasted(raw){
+   const lines=raw.trim().split(/\r?\n/).filter(Boolean);
+   const sep=lines[0]?.includes('\t')?'\t':lines[0]?.includes(';')?';':',';
+   const rows=lines.map(line=>line.split(sep).map(v=>v.trim().replace(/^"|"$/g,'')));
+   return t1ParseGenerico(rows);
+ }
+
+function tvParseBienvenidasCompat(rawRows){
+  const generic=t1ParseGenerico(rawRows);
+  if(generic.length)return generic;
+  const out=[];
+  const emailRe=/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const rutRe=/\b\d{7,9}-?[0-9Kk]\b/;
+  for(const row of rawRows){
+    const cells=row.map(x=>String(x??'').trim()),str=cells.join(' ');
+    const email=str.match(emailRe)?.[0],rut=str.match(rutRe)?.[0];
+    if(!email||!rut)continue;
+    const nombre=cells.filter(x=>x&&!x.includes('@')&&!rutRe.test(x)&&!/^\d+$/.test(x)).slice(0,3).join(' ').toUpperCase();
+    out.push({RUT:t1NormalizarRut(rut),NOMBRE:nombre,CORREO_UNAB:email.toLowerCase(),Columna7:''});
+  }
+  return out;
+}
+
+ async function tvProcesar(){
+   const result=document.getElementById('t1-result'),actions=document.getElementById('t1-actions');
+   if(!tvState.selected.size){result.innerHTML='<div class="alert error">Seleccione al menos un NRC.</div>';return;}
+   if(!tvState.files.length&&!document.getElementById('tv-text').value.trim()){result.innerHTML='<div class="alert error">Cargue un archivo o pegue la nómina.</div>';return;}
+   let rows=[],formats=new Set();
+   for(const f of tvState.files){const parsed=await t1ProcesarArchivoUniversal(f);formats.add(parsed.format);let detected=parsed.rows;if(!detected.length){detected=tvParseBienvenidasCompat(await readFile(f,false));if(detected.length)formats.add('Bienvenidas compatible');}rows.push(...detected);}
+   if(!tvState.files.length){const txt=document.getElementById('tv-text').value;rows=tvParsePasted(txt);formats.add('Texto tabular');}
+   rows=t1FinalizarRows(rows);
+   const unique=new Map();for(const r of rows){const rut=String(r.RUT||'').replace(/[^0-9K]/gi,'').toUpperCase();if(!rut||!String(r.CORREO_UNAB||'').includes('@'))continue;if(!unique.has(rut))unique.set(rut,r);}
+   if(!unique.size){result.innerHTML='<div class="alert error">No se encontraron estudiantes válidos con RUT y correo. Revise los encabezados y el formato.</div>';return;}
+   const selectedCourses=tvState.courses.filter(r=>tvState.selected.has(t1CursoDesdeCatalogo(r).NRC_COD_CAL_FILTRO));
+   const output=[];
+   for(const r of selectedCourses){const course=t1CursoDesdeCatalogo(r);for(const student of unique.values()){
+     output.push({...student,PERIODO:course.PERIODO,NRC_COD:course.NRC_COD,NOMBRE_CURSO:course.NOMBRE_CURSO,FECHA_INICIO:course.FECHA_INICIO,NRC_COD_CAL_FILTRO:course.NRC_COD_CAL_FILTRO});
+   }}
+   state.t1Data=t1FinalizarRows(output);state.t1DetectedFormat='Versión · '+[...formats].join(' + ');
+   state.t1BulkMeta={intake:tvState.selectedIntake,origen:document.getElementById('tv-origen').value,cursos:selectedCourses.length,estudiantes:unique.size};
+   tvCoverage(unique.size);
+   result.innerHTML='<div class="alert success">✅ Nómina preparada: <strong>'+unique.size+'</strong> estudiantes × <strong>'+selectedCourses.length+'</strong> NRC = <strong>'+state.t1Data.length+'</strong> registros. Formatos detectados: '+tvEsc([...formats].join(', '))+'.</div><div class="alert info">⚠️ Revise que todos los estudiantes correspondan a cada NRC marcado. Antes del envío, confirme las reglas de duplicados del flujo de Power Automate; esta vista previa solo evita duplicados dentro del archivo.</div>';
+   const table=document.createElement('div');result.appendChild(table);renderTable(state.t1Data.slice(0,200),table);actions.style.display='flex';
+ }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(function init(){
+  const today=new Date().toISOString().substring(0,10);
+  ['t1-fecha','t1m-fecha','t2-fi','t2-ff','t3-fechainicio','t3-fechacal','t3-fechasesion'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value=today;
+  });
+  cImportarConexionDesdeEnlace();
+  if(!cRestaurarLote())cAdd();
+  document.getElementById('c-carpetas')?.addEventListener('input',cGuardarLote);
+  document.getElementById('c-carpetas')?.addEventListener('change',cGuardarLote);
+  document.getElementById('c-intake')?.addEventListener('input',cGuardarLote);
+  document.getElementById('c-cc')?.addEventListener('input',cGuardarLote);
+  t4CoordInit();
+  t2CargarNrcs();
+  setTimeout(tvRefreshIntakes,1200);
+})();
+</script>
+</body>
+</html>
