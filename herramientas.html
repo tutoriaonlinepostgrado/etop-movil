@@ -311,6 +311,7 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
 .btn-row{margin-top:12px}
 .tab-panel>.section-title+div{margin-top:6px}
 @media(min-width:700px){.tab-panel{max-width:900px;margin:auto}.tabs-nav{max-width:900px;margin:auto}}
+.cal-mapping{padding:12px;background:#fff;border:1px solid #c8dced;border-radius:12px;margin:10px 0}.cal-mapping p{font-size:12px;color:#5e7287}.cal-map-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #e8eff6;font-size:12px}.cal-map-row span{flex:1;min-width:0;overflow-wrap:anywhere}.cal-map-row select{flex:1;min-width:0;font-size:13px!important}.cal-mapping>.btn{margin-top:12px;width:100%}
 </style></head>
 <body>
 
@@ -599,7 +600,7 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
     <input id="t4-archivo" type="file" accept=".xlsx,.xls,.csv" onchange="t4CargarExcel(this)" />
     <div class="helper" id="t4-archivo-status">Se buscará automáticamente la hoja que contenga los encabezados del calendario.</div>
   </div>
-  <div class="form-group"><label>📋 O pega aquí el bloque del calendario:</label><textarea id="t4-texto" placeholder="Pega aquí el bloque copiado del Excel..." style="min-height:220px;"></textarea></div>
+  <div class="form-group"><label>📋 O pega aquí el bloque del calendario:</label><div id="cal-mapping" class="cal-mapping" hidden></div><textarea id="t4-texto" placeholder="Pega aquí el bloque copiado del Excel..." style="min-height:220px;"></textarea></div>
   <hr class="divider">
   <div style="font-weight:700; margin-bottom:0.35rem;">2. Identifica el programa y genera la versión</div>
   <div class="helper" id="t4-catalogos-status">⏳ Cargando opciones oficiales desde nrcs.json...</div>
@@ -1338,28 +1339,74 @@ function downloadTab3(){if(!state.t3Data)return;exportXLSXConTabla(state.t3Data,
 function calNormalizarEncabezado(v){
   return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[_./\\-]+/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
+const CAL_ALIASES={
+ nrc:['nrc','numero nrc','nro nrc','nrc curso','crn'],
+ codigo:['codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','cod asignatura','cod curso','sigla curso','sigla asignatura','abreviada','abreviatura','sigla','materia'],
+ nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','nombre ramo','nombre del ramo','asignatura','curso','actividad curricular'],
+ inicio:['fecha de inicio','fecha inicio','fecha inicial','inicio de curso','inicio curso','inicio','desde','comienzo'],
+ termino:['fecha de termino','fecha termino','fecha de fin','fecha fin','fecha final','termino de curso','termino curso','termino','fin','hasta'],
+ periodo:['periodo','periodo academico','term code'],
+ profesor:['nombre de profesor','nombre profesor','profesor','docente','academico','relator'],
+ facultad:['facultad'],version:['version','version logica','version cohorte','version intake'],
+ rango:['fechas','rango de fechas','fecha inicio y fin','fecha de inicio y termino','periodo de clases']
+};
 function calDetectarHeader(cols){
-  const cu=cols.map(calNormalizarEncabezado),hits={};
-  const KEYS={
-    nrc:['nrc','numero nrc','nrc curso'],
-    codigo:['codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','codigo asignatura','cod asignatura','abreviada','abreviatura','sigla','materia'],
-    nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','asignatura','curso'],
-    inicio:['fecha de inicio','fecha inicio','inicio de curso','inicio curso','inicio','desde'],
-    termino:['fecha de termino','fecha termino','fecha de fin','fecha fin','termino de curso','termino curso','termino','fin','hasta'],
-    periodo:['periodo'],
-    profesor:['nombre de profesor','nombre profesor','profesor','docente','academico','relator'],
-    facultad:['facultad'],
-    version:['version','version logica','version cohorte','version intake'],
-    rango:['fechas','rango de fechas','fecha inicio y fin','fecha de inicio y termino','fecha de inicio y término','periodo de clases']
-  };
-  for(const[campo,kws]of Object.entries(KEYS)){for(let i=0;i<cu.length;i++){if(kws.some(kw=>cu[i]===kw||cu[i].startsWith(kw+' '))){if(!(campo in hits))hits[campo]=i;}}}
-  // Algunos calendarios omiten el rótulo NRC, pero conservan su columna
-  // inmediatamente entre Término y Periodo.
-  if(hits.nrc===undefined&&hits.termino!==undefined&&hits.periodo!==undefined&&hits.periodo===hits.termino+2){
-    hits.nrc=hits.termino+1;
-  }
-  return Object.keys(hits).length>=2?hits:null;
+ const cu=cols.map(calNormalizarEncabezado),hits={};
+ for(const [campo,kws] of Object.entries(CAL_ALIASES))for(let i=0;i<cu.length;i++){
+  if(kws.some(kw=>cu[i]===kw||cu[i].startsWith(kw+' '))&&hits[campo]===undefined)hits[campo]=i;
+ }
+ if(hits.nrc===undefined&&hits.termino!==undefined&&hits.periodo===hits.termino+2)hits.nrc=hits.termino+1;
+ const essentials=['nrc','codigo','nombre','inicio','termino','rango'].filter(k=>hits[k]!==undefined);
+ return essentials.length>=2?hits:null;
 }
+const CAL_FIELDS={nrc:'NRC',periodo:'Período',codigo:'Código curso',nombre:'Nombre curso',inicio:'Fecha inicio',termino:'Fecha término',rango:'Rango de fechas',profesor:'Docente',facultad:'Facultad',version:'Versión'};
+let calWorkbookRows=null;
+function calSuggestColumn(header,values){
+ const name=calNormalizarEncabezado(header);
+ for(const [key,aliases] of Object.entries(CAL_ALIASES))if(aliases.some(a=>name===a||name.startsWith(a+' ')))return key;
+ const vals=values.map(v=>calValorATexto(v)).filter(Boolean).slice(0,15);
+ if(vals.length<2)return '';
+ const ratio=(fn)=>vals.filter(fn).length/vals.length;
+ if(ratio(v=>/^\\d{4,5}$/.test(v))>.8)return 'nrc';
+ if(ratio(v=>/^20\\d{4}$/.test(v))>.8)return 'periodo';
+ if(ratio(v=>/^(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4}|\\d{1,2}[-\\s](?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic))/i.test(v))>.7)return 'inicio';
+ if(ratio(v=>/^[A-Z]{2,8}\\s*[- ]?\\d{2,4}$/i.test(v))>.7)return 'codigo';
+ return '';
+}
+function calShowMapping(){
+ const host=document.getElementById('cal-mapping');if(!host||!calWorkbookRows)return;
+ host.replaceChildren();
+ const heading=document.createElement('strong');heading.textContent='Revisar columnas detectadas';host.append(heading);
+ const desc=document.createElement('p');desc.textContent='Confirma la correspondencia antes de procesar. Las columnas no utilizadas pueden quedar en Ignorar.';host.append(desc);
+ const header=calWorkbookRows.rows[0],sample=calWorkbookRows.rows.slice(1,15);
+ const selectors=[];
+ header.forEach((h,i)=>{
+  if(!String(h).trim()&&!sample.some(row=>String(row[i]??'').trim()))return;
+  const row=document.createElement('label');row.className='cal-map-row';
+  const name=document.createElement('span');name.textContent=String(h||'Columna '+(i+1))+' · '+String(sample.find(r=>r[i]!==''&&r[i]!=null)?.[i]??'').slice(0,34);row.append(name);
+  const select=document.createElement('select');select.dataset.column=String(i);
+  select.append(new Option('Ignorar',''));
+  Object.entries(CAL_FIELDS).forEach(([key,value])=>select.append(new Option(value,key)));
+  select.value=calSuggestColumn(h,sample.map(r=>r[i]));
+  selectors.push(select);row.append(select);host.append(row);
+ });
+ const btn=document.createElement('button');btn.type='button';btn.className='btn primary';btn.textContent='Aplicar columnas';
+ btn.addEventListener('click',()=>{
+  const mapped=selectors.filter(x=>x.value);
+  const fields=mapped.map(x=>x.value);
+  if(new Set(fields).size!==fields.length){alert('Un campo ETOP no puede asignarse a dos columnas.');return;}
+  if(!fields.includes('codigo')&&!fields.includes('nombre')){alert('Asigna al menos Código curso o Nombre curso.');return;}
+  if(!fields.includes('inicio')&&!fields.includes('rango')){alert('Asigna Fecha inicio o Rango de fechas.');return;}
+  const cols=header.map(()=>''),canonical={nrc:'NRC',codigo:'Código curso',nombre:'Nombre curso',inicio:'Fecha de inicio',termino:'Fecha de término',periodo:'Período',profesor:'Profesor',facultad:'Facultad',version:'Versión',rango:'Rango de fechas'};
+  mapped.forEach(x=>cols[Number(x.dataset.column)]=canonical[x.value]);
+  const rows=[cols,...calWorkbookRows.rows.slice(1)];
+  document.getElementById('t4-texto').value=rows.map(r=>r.map(calValorATexto).join('\\t')).join('\\n');
+  document.getElementById('t4-archivo-status').textContent='Columnas confirmadas · '+mapped.length+' campos. Ya puedes procesar el calendario.';
+  host.hidden=true;
+ });
+ host.append(btn);host.hidden=false;
+}
+
 function calValorATexto(v){
   if(v instanceof Date&&!isNaN(v))return String(v.getDate()).padStart(2,'0')+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+v.getFullYear();
   if(typeof v==='number'&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);if(d)return String(d.d).padStart(2,'0')+'-'+String(d.m).padStart(2,'0')+'-'+d.y;}
@@ -1377,10 +1424,20 @@ async function t4CargarExcel(input){
       const headerIndex=rows.findIndex(r=>Array.isArray(r)&&calDetectarHeader(r));
       if(headerIndex>=0){seleccion={nombreHoja,rows:rows.slice(headerIndex)};break;}
     }
-    if(!seleccion)throw new Error('No se encontró una hoja con encabezados reconocibles.');
+    if(!seleccion){
+      // Selección conservadora: localizar la fila de encabezados a partir de datos tabulares.
+      for(const nombreHoja of wb.SheetNames){
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja],{header:1,defval:'',raw:true});
+        const index=rows.findIndex((row,i)=>i<50&&Array.isArray(row)&&row.filter(v=>String(v??'').trim()).length>=3&&rows.slice(i+1,i+5).some(r=>Array.isArray(r)&&r.filter(v=>String(v??'').trim()).length>=3));
+        if(index>=0){seleccion={nombreHoja,rows:rows.slice(index)};break;}
+      }
+    }
+    if(!seleccion)throw new Error('No se identificó una tabla de cursos en el archivo.');
+    calWorkbookRows=seleccion;
     texto.value=seleccion.rows.map(r=>r.map(calValorATexto).join('\t')).join('\n');
-    const header=seleccion.rows.find(r=>calDetectarHeader(r))||[];const mapa=calDetectarHeader(header)||{},detectados=Object.keys(mapa).map(k=>k.toUpperCase()).join(', ');
-    status.innerHTML='✅ Archivo cargado · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Campos detectados: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
+    calShowMapping();
+    const header=seleccion.rows[0]||[];const mapa=calDetectarHeader(header)||{},detectados=Object.keys(mapa).map(k=>k.toUpperCase()).join(', ');
+    status.innerHTML='Revisa las columnas antes de procesar · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Campos detectados: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
   }catch(err){
     status.innerHTML='<span style="color:#b42318;">No se pudo leer el archivo: '+err.message+'</span>';
     input.value='';
