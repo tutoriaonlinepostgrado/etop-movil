@@ -1367,10 +1367,10 @@ function calSuggestColumn(header,values){
  const vals=values.map(v=>calValorATexto(v)).filter(Boolean).slice(0,15);
  if(vals.length<2)return '';
  const ratio=(fn)=>vals.filter(fn).length/vals.length;
- if(ratio(v=>/^\\d{4,5}$/.test(v))>.8)return 'nrc';
- if(ratio(v=>/^20\\d{4}$/.test(v))>.8)return 'periodo';
- if(ratio(v=>/^(?:\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4}|\\d{1,2}[-\\s](?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic))/i.test(v))>.7)return 'inicio';
- if(ratio(v=>/^[A-Z]{2,8}\\s*[- ]?\\d{2,4}$/i.test(v))>.7)return 'codigo';
+ if(ratio(v=>/^\d{4,5}$/.test(v))>.8)return 'nrc';
+ if(ratio(v=>/^20\d{4}$/.test(v))>.8)return 'periodo';
+ if(ratio(v=>/^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{1,2}[-\s](?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic))/i.test(v))>.7)return 'inicio';
+ if(ratio(v=>/^[A-Z]{2,8}\s*[- ]?\d{2,4}$/i.test(v))>.7)return 'codigo';
  return '';
 }
 function calShowMapping(){
@@ -1400,7 +1400,7 @@ function calShowMapping(){
   const cols=header.map(()=>''),canonical={nrc:'NRC',codigo:'Código curso',nombre:'Nombre curso',inicio:'Fecha de inicio',termino:'Fecha de término',periodo:'Período',profesor:'Profesor',facultad:'Facultad',version:'Versión',rango:'Rango de fechas'};
   mapped.forEach(x=>cols[Number(x.dataset.column)]=canonical[x.value]);
   const rows=[cols,...calWorkbookRows.rows.slice(1)];
-  document.getElementById('t4-texto').value=rows.map(r=>r.map(calValorATexto).join('\\t')).join('\\n');
+  document.getElementById('t4-texto').value=rows.map(r=>r.map(calValorATexto).join('\t')).join('\n');
   document.getElementById('t4-archivo-status').textContent='Columnas confirmadas · '+mapped.length+' campos. Ya puedes procesar el calendario.';
   host.hidden=true;
  });
