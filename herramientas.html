@@ -1357,7 +1357,7 @@ function calDetectarHeader(cols){
  }
  if(hits.nrc===undefined&&hits.termino!==undefined&&hits.periodo===hits.termino+2)hits.nrc=hits.termino+1;
  const essentials=['nrc','codigo','nombre','inicio','termino','rango'].filter(k=>hits[k]!==undefined);
- return essentials.length>=2?hits:null;
+ return essentials.length>=2 && (hits.inicio!==undefined||hits.termino!==undefined||hits.rango!==undefined)?hits:null;
 }
 const CAL_FIELDS={nrc:'NRC',periodo:'Período',codigo:'Código curso',nombre:'Nombre curso',inicio:'Fecha inicio',termino:'Fecha término',rango:'Rango de fechas',profesor:'Docente',facultad:'Facultad',version:'Versión'};
 let calWorkbookRows=null;
@@ -1367,8 +1367,8 @@ function calSuggestColumn(header,values){
  const vals=values.map(v=>calValorATexto(v)).filter(Boolean).slice(0,15);
  if(vals.length<2)return '';
  const ratio=(fn)=>vals.filter(fn).length/vals.length;
- if(ratio(v=>/^\d{4,5}$/.test(v))>.8)return 'nrc';
  if(ratio(v=>/^20\d{4}$/.test(v))>.8)return 'periodo';
+ if(ratio(v=>/^\d{4,5}$/.test(v))>.8)return 'nrc';
  if(ratio(v=>/^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{1,2}[-\s](?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic))/i.test(v))>.7)return 'inicio';
  if(ratio(v=>/^[A-Z]{2,8}\s*[- ]?\d{2,4}$/i.test(v))>.7)return 'codigo';
  return '';
@@ -1418,11 +1418,15 @@ async function t4CargarExcel(input){
   status.innerHTML='<span class="spinner"></span> Leyendo archivo...';
   try{
     const buffer=await file.arrayBuffer(),wb=XLSX.read(buffer,{type:'array',cellDates:true});
-    let seleccion=null;
+    let seleccion=null,mejorPuntaje=-1;
     for(const nombreHoja of wb.SheetNames){
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja],{header:1,defval:'',raw:true});
-      const headerIndex=rows.findIndex(r=>Array.isArray(r)&&calDetectarHeader(r));
-      if(headerIndex>=0){seleccion={nombreHoja,rows:rows.slice(headerIndex)};break;}
+      for(let idx=0;idx<Math.min(rows.length,100);idx++){
+        const h=Array.isArray(rows[idx])?calDetectarHeader(rows[idx]):null;
+        if(!h)continue;
+        const score=Object.keys(h).length*10+rows.slice(idx+1,idx+15).filter(row=>Array.isArray(row)&&h.nrc!==undefined&&/^\d{4,5}$/.test(String(row[h.nrc]??'').trim())).length*4;
+        if(score>mejorPuntaje){mejorPuntaje=score;seleccion={nombreHoja,rows:rows.slice(idx)};}
+      }
     }
     if(!seleccion){
       // Selección conservadora: localizar la fila de encabezados a partir de datos tabulares.
@@ -1435,9 +1439,12 @@ async function t4CargarExcel(input){
     if(!seleccion)throw new Error('No se identificó una tabla de cursos en el archivo.');
     calWorkbookRows=seleccion;
     texto.value=seleccion.rows.map(r=>r.map(calValorATexto).join('\t')).join('\n');
-    calShowMapping();
     const header=seleccion.rows[0]||[];const mapa=calDetectarHeader(header)||{},detectados=Object.keys(mapa).map(k=>k.toUpperCase()).join(', ');
-    status.innerHTML='Revisa las columnas antes de procesar · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Campos detectados: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
+    const expected=seleccion.rows.slice(1).filter(row=>mapa.nrc!==undefined&&/^\d{4,5}$/.test(String(row[mapa.nrc]??'').trim())).length;
+    const mapping=document.getElementById('cal-mapping');
+    if(mapa.nrc!==undefined&&mapa.codigo!==undefined&&mapa.inicio!==undefined){if(mapping)mapping.hidden=true;}
+    else calShowMapping();
+    status.innerHTML=(mapping&&!mapping.hidden?'Revisa las columnas':'Archivo listo para procesar')+' · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Cursos identificados: '+expected+' · Campos: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
   }catch(err){
     status.innerHTML='<span style="color:#b42318;">No se pudo leer el archivo: '+err.message+'</span>';
     input.value='';
