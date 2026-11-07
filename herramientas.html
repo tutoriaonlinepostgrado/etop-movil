@@ -1340,9 +1340,9 @@ function calNormalizarEncabezado(v){
   return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[_./\\-]+/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 const CAL_ALIASES={
- nrc:['nrc','numero nrc','nro nrc','nrc curso','crn'],
- codigo:['codigo','codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','cod asignatura','cod curso','sigla curso','sigla asignatura','abreviada','abreviatura','sigla','materia'],
- nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','nombre ramo','nombre del ramo','asignatura','curso','actividad curricular'],
+ nrc:['nrc','numero nrc','nro nrc','nrc curso','n de nrc','n nrc','crn'],
+ codigo:['codigo','codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','cod asignatura','cod de asignatura','cod curso','cod de curso','cod','sigla curso','sigla asignatura','abreviada','abreviatura','sigla'],
+ nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','nombre del ramo','nombre ramo','nombre','asignatura','curso','actividad curricular','descripcion asignatura'],
  inicio:['fecha de inicio','fecha inicio','fecha inicial','inicio de curso','inicio curso','inicio','desde','comienzo'],
  termino:['fecha de termino','fecha termino','fecha de fin','fecha fin','fecha final','termino de curso','termino curso','termino','fin','hasta'],
  periodo:['periodo','periodo academico','term code'],
@@ -1352,8 +1352,12 @@ const CAL_ALIASES={
 };
 function calDetectarHeader(cols){
  const cu=cols.map(calNormalizarEncabezado),hits={};
- for(const [campo,kws] of Object.entries(CAL_ALIASES))for(let i=0;i<cu.length;i++){
-  if(kws.some(kw=>cu[i]===kw||cu[i].startsWith(kw+' '))&&hits[campo]===undefined)hits[campo]=i;
+ for(let i=0;i<cu.length;i++){
+  const n=cu[i];if(!n)continue;
+  const choices=Object.entries(CAL_ALIASES).map(([campo,kws])=>({
+   campo,score:kws.reduce((best,kw)=>Math.max(best,n===kw?100+kw.length:n.startsWith(kw+' ')?20+kw.length:0),0)
+  })).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+  if(choices.length&&hits[choices[0].campo]===undefined)hits[choices[0].campo]=i;
  }
  if(hits.nrc===undefined&&hits.termino!==undefined&&hits.periodo===hits.termino+2)hits.nrc=hits.termino+1;
  const essentials=['nrc','codigo','nombre','inicio','termino','rango'].filter(k=>hits[k]!==undefined);
@@ -1363,7 +1367,8 @@ const CAL_FIELDS={nrc:'NRC',periodo:'Período',codigo:'Código curso',nombre:'No
 let calWorkbookRows=null;
 function calSuggestColumn(header,values){
  const name=calNormalizarEncabezado(header);
- for(const [key,aliases] of Object.entries(CAL_ALIASES))if(aliases.some(a=>name===a||name.startsWith(a+' ')))return key;
+ const matched=Object.entries(CAL_ALIASES).map(([key,aliases])=>({key,score:aliases.reduce((best,a)=>Math.max(best,name===a?100+a.length:name.startsWith(a+' ')?20+a.length:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ if(matched.length)return matched[0].key;
  const vals=values.map(v=>calValorATexto(v)).filter(Boolean).slice(0,15);
  if(vals.length<2)return '';
  const ratio=(fn)=>vals.filter(fn).length/vals.length;
@@ -1490,7 +1495,9 @@ function calHeaderPlano(v){
     'fecha fin':'termino','fecha de termino':'termino','fecha termino':'termino','fin':'termino',
     'fechas':'rango','rango de fechas':'rango','fecha inicio y fin':'rango'
   };
-  return mapa[n]||'';
+  if(mapa[n])return mapa[n];
+  const choices=Object.entries(CAL_ALIASES).map(([campo,kws])=>({campo,score:kws.reduce((best,kw)=>Math.max(best,n===kw?100+kw.length:n.startsWith(kw+' ')?20+kw.length:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+  return choices[0]?.campo||'';
 }
 function calConvertirTextoPlanoATabulado(texto){
   // Outlook/Teams puede pegar una tabla HTML dejando cada celda en una línea.
