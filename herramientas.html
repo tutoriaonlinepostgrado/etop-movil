@@ -1341,7 +1341,7 @@ function calNormalizarEncabezado(v){
 }
 const CAL_ALIASES={
  nrc:['nrc','numero nrc','nro nrc','nrc curso','crn'],
- codigo:['codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','cod asignatura','cod curso','sigla curso','sigla asignatura','abreviada','abreviatura','sigla','materia'],
+ codigo:['codigo','codigo asignatura','codigo de curso','codigo curso','codigo de asignatura','cod asignatura','cod curso','sigla curso','sigla asignatura','abreviada','abreviatura','sigla','materia'],
  nombre:['nombre de curso','nombre del curso','nombre curso','nombre de asignatura','nombre asignatura','nombre ramo','nombre del ramo','asignatura','curso','actividad curricular'],
  inicio:['fecha de inicio','fecha inicio','fecha inicial','inicio de curso','inicio curso','inicio','desde','comienzo'],
  termino:['fecha de termino','fecha termino','fecha de fin','fecha fin','fecha final','termino de curso','termino curso','termino','fin','hasta'],
@@ -1442,7 +1442,7 @@ async function t4CargarExcel(input){
     const header=seleccion.rows[0]||[];const mapa=calDetectarHeader(header)||{},detectados=Object.keys(mapa).map(k=>k.toUpperCase()).join(', ');
     const expected=seleccion.rows.slice(1).filter(row=>mapa.nrc!==undefined&&/^\d{4,5}$/.test(String(row[mapa.nrc]??'').trim())).length;
     const mapping=document.getElementById('cal-mapping');
-    if(mapa.nrc!==undefined&&mapa.codigo!==undefined&&mapa.inicio!==undefined){if(mapping)mapping.hidden=true;}
+    if(mapa.nrc!==undefined&&mapa.codigo!==undefined&&mapa.inicio!==undefined&&mapa.termino!==undefined){if(mapping)mapping.hidden=true;}
     else calShowMapping();
     status.innerHTML=(mapping&&!mapping.hidden?'Revisa las columnas':'Archivo listo para procesar')+' · Hoja: <strong>'+seleccion.nombreHoja+'</strong> · Cursos identificados: '+expected+' · Campos: '+detectados+(seleccion.versionNormalizada?' · Versión '+seleccion.versionNormalizada:'')+'.';
   }catch(err){
@@ -1458,6 +1458,8 @@ function calFmtFecha(v){
   if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
   m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2})$/);
   if(m)return '20'+m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  const short=calFechaCortaISO(s,new Date().getFullYear());
+  if(short)return short;
   return s;
 }
 function calFechaCortaISO(valor, anio){
@@ -1687,7 +1689,9 @@ async function processTab4(){
   try{
     const filas=parsearTextoCalendario(texto);
     if(filas.omitted?.length){re.innerHTML='<div class="alert error">No se generó el calendario porque se omitieron '+filas.omitted.length+' fila(s): '+filas.omitted.map(esc).join('; ')+'. Revisa las fechas antes de continuar.</div>';return;}
-    if(!filas.length){re.innerHTML='<div class="alert error">No se pudieron extraer cursos. El formato pegado no pudo interpretarse. Revisa que incluya NRC/Periodo/Código/Versión y fechas.</div>';return;}
+    if(!filas.length){
+      const sample=texto.split(/\r?\n/).filter(x=>x.trim()).slice(0,4).map(x=>esc(x.slice(0,150))).join('<br>');
+      re.innerHTML='<div class="alert error">No se reconocieron cursos. Comprueba que el archivo haya sido importado y que las columnas NRC, Código y Fecha de inicio estén identificadas. '+(document.getElementById('cal-mapping')&&!document.getElementById('cal-mapping').hidden?'Pulsa «Aplicar columnas» antes de procesar. ':'')+'<details><summary>Ver diagnóstico</summary>'+sample+'</details></div>';return;}
     const materia=document.getElementById('t4-materia').value.trim(),intakeManual=document.getElementById('t4-intake').value.trim(),programa=document.getElementById('t4-programa').value.trim(),facultad=document.getElementById('t4-facultad').value.trim(),tipo=document.getElementById('t4-tipo').value.trim(),tutor=document.getElementById('t4-tutor').value.trim(),cTut=document.getElementById('t4-correotutor').value.trim();
     if(!programa||!materia||!facultad||!tipo){re.innerHTML='<div class="alert error">Selecciona Programa, Materia, Facultad y Tipo de programa antes de procesar.</div>';return;}
     const coordEmails=document.getElementById('t4-coord-value').value;
