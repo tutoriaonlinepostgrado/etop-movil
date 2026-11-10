@@ -312,7 +312,6 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
 .tab-panel>.section-title+div{margin-top:6px}
 @media(min-width:700px){.tab-panel{max-width:900px;margin:auto}.tabs-nav{max-width:900px;margin:auto}}
 .cal-mapping{padding:12px;background:#fff;border:1px solid #c8dced;border-radius:12px;margin:10px 0}.cal-mapping p{font-size:12px;color:#5e7287}.cal-map-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #e8eff6;font-size:12px}.cal-map-row span{flex:1;min-width:0;overflow-wrap:anywhere}.cal-map-row select{flex:1;min-width:0;font-size:13px!important}.cal-mapping>.btn{margin-top:12px;width:100%}
-.t4-filter-search,.t4-edit-search{width:100%;margin:4px 0 7px;border:1px solid #cbdbea;border-radius:10px;padding:11px;background:white;color:#19354d}.t4-edit-top,.t4-edit-item{display:flex;justify-content:space-between;align-items:center;gap:10px}.t4-edit-top{margin-top:16px}.t4-edit-item{padding:11px 0;border-bottom:1px solid #d9e4ee}.t4-edit-item>div{min-width:0;overflow-wrap:anywhere}.t4-edit-item small{display:block;color:#65798d;margin-top:4px}#t4-row-editor{margin-top:14px;padding:14px;background:#fff;border:1px solid #cddfec;border-radius:12px}.t4-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.t4-edit-grid label{font-size:11px;min-width:0}.t4-edit-grid input{width:100%;padding:9px;border:1px solid #cfdeea;border-radius:8px}@media(max-width:480px){.t4-edit-grid{grid-template-columns:1fr}}
 </style></head>
 <body>
 
@@ -665,7 +664,6 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
   </div>
   <div class="btn-row"><button class="btn primary" onclick="processTab4()">⚡ Procesar Calendario</button></div>
   <div id="t4-result"></div>
-  <div id="t4-edit-results"></div><div id="t4-row-editor" hidden></div>
   <div id="t4-actions" style="display:none" class="btn-row">
     <button class="btn" onclick="downloadTab4()">📥 Descargar Excel</button>
     <button class="btn primary" type="button" onclick="cAbrirNotificacion()">✉️ Preparar aviso</button>
@@ -1308,7 +1306,7 @@ async function processTab2(){
     }
     if(!salida.length){re.innerHTML='<div class="alert info">No se encontraron correos válidos.</div>';return;}
     state.t2Data=salida;re.innerHTML=`<div class="alert success">🎉 Plantilla generada. <span class="badge">${salida.length}</span> registros.</div>`;
-    t4RenderEditable();ae.style.display='flex';
+    const td=document.createElement('div');re.appendChild(td);renderTable(salida,td);ae.style.display='flex';
   }catch(err){re.innerHTML=`<div class="alert error">Error: ${err.message}</div>`;}
 }
 function downloadTab2(){if(!state.t2Data)return;exportXLSXConTabla(state.t2Data,'Nomina_SharePoint_'+new Date().toISOString().replace(/[-:T]/g,'').substring(0,14)+'.xlsx');}
@@ -1783,85 +1781,6 @@ async function processTab4(){
   }catch(err){re.innerHTML='<div class="alert error">Error: '+err.message+'</div>';}
 }
 
-
-// Edición local de filas del calendario antes de exportar (no escribe en SharePoint).
-const T4_EDIT_FIELDS=['NRC','PERIODO','CODIGO CURSO','NOMBRE CURSO','FECHA DE INICIO','FECHA FIN','FACULTAD','MATERIA','TIPO_NRC','INTAKE O VERSION','NOMBRE TUTOR','CORREO TUTOR','PROFESOR'];
-function t4Editor(index){
- const data=state.t4Data||[];const isNew=index===null;
- const original=isNew?Object.fromEntries(Object.keys(data[0]||{}).map(k=>[k,''])):{...data[index]};
- if(isNew){
-  for(const key of ['FACULTAD','MATERIA','TIPO_NRC','INTAKE O VERSION','NOMBRE TUTOR','CORREO TUTOR','Coordinadores_Emails_Texto','COORDINADION','Coordinadores_Claims','NOMBRE_PROGRAMA']){
-   original[key]=data[0]?.[key]||'';
-  }
- }
- const panel=document.getElementById('t4-row-editor');panel.replaceChildren();panel.hidden=false;
- const h=document.createElement('h3');h.textContent=isNew?'Agregar curso':'Editar curso · NRC '+original.NRC;panel.append(h);
- const form=document.createElement('div');form.className='t4-edit-grid';const inputs={};
- T4_EDIT_FIELDS.forEach(key=>{
-  const wrap=document.createElement('label');wrap.textContent=key;
-  const input=document.createElement('input');input.type=(key==='FECHA DE INICIO'||key==='FECHA FIN')?'date':'text';
-  input.value=original[key]||'';input.placeholder=key;inputs[key]=input;wrap.append(input);form.append(wrap);
- });panel.append(form);
- const actions=document.createElement('div');actions.className='btn-row';
- const save=document.createElement('button');save.className='btn primary';save.textContent='Guardar cambios';save.type='button';
- save.onclick=()=>{
-  const updated={...original};for(const [key,input] of Object.entries(inputs))updated[key]=input.value.trim();
-  if(!/^\d{4,5}$/.test(updated.NRC)){alert('Ingresa un NRC válido de 4 o 5 dígitos.');return;}
-  if(!/^20\d{4}$/.test(updated.PERIODO)){alert('El período debe tener seis dígitos, por ejemplo 202683.');return;}
-  if(!updated['CODIGO CURSO']||!updated['NOMBRE CURSO']){alert('Código y nombre del curso son obligatorios.');return;}
-  const begin=updated['FECHA DE INICIO'],end=updated['FECHA FIN'];
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(begin)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<begin){alert('Revisa las fechas de inicio y término.');return;}
-  if(data.some((row,i)=>i!==index&&String(row.NRC)===updated.NRC&&String(row.PERIODO)===updated.PERIODO)){alert('Ya existe un curso con ese NRC y período.');return;}
-  if(updated['CORREO TUTOR']){
-   updated.Correo_Tutor_a=updated['CORREO TUTOR'];
-   updated.Tutor_Claims='i:0#.f|membership|'+updated['CORREO TUTOR'];
-  }
-  if(isNew)data.push(updated);else data[index]=updated;
-  panel.hidden=true;t4RenderEditable();
- };
- const cancel=document.createElement('button');cancel.className='btn';cancel.textContent='Cancelar';cancel.type='button';cancel.onclick=()=>panel.hidden=true;
- actions.append(save,cancel);panel.append(actions);panel.scrollIntoView({behavior:'smooth',block:'start'});
-}
-function t4RenderEditable(){
- const data=state.t4Data||[],host=document.getElementById('t4-edit-results');if(!host)return;
- host.replaceChildren();
- const top=document.createElement('div');top.className='t4-edit-top';
- const title=document.createElement('strong');title.textContent=data.length+' cursos · revisar y editar';
- const add=document.createElement('button');add.className='btn primary';add.textContent='+ Agregar curso';add.onclick=()=>t4Editor(null);
- top.append(title,add);host.append(top);
- const search=document.createElement('input');search.type='search';search.placeholder='Buscar NRC, código o asignatura';search.className='t4-edit-search';host.append(search);
- const list=document.createElement('div');host.append(list);
- function render(){
-  list.replaceChildren();
-  data.forEach((row,index)=>{
-   const label=[row.NRC,row['CODIGO CURSO'],row['NOMBRE CURSO']].join(' ');
-   if(!label.toLowerCase().includes(search.value.toLowerCase()))return;
-   const item=document.createElement('div');item.className='t4-edit-item';
-   const info=document.createElement('div');info.innerHTML='<strong>'+esc(row['CODIGO CURSO']||'Sin código')+'</strong> · NRC '+esc(row.NRC||'')+'<small>'+esc(row['NOMBRE CURSO']||'')+'<br>'+esc(row['FECHA DE INICIO']||'')+' → '+esc(row['FECHA FIN']||'')+'</small>';
-   const edit=document.createElement('button');edit.className='btn';edit.textContent='Editar';edit.onclick=()=>t4Editor(index);
-   item.append(info,edit);list.append(item);
-  });
- }
- search.oninput=render;render();
-}
-function t4EnableSearchableFilters(){
- for(const id of ['t4-programa','t4-materia','t4-facultad','t4-tipo','t4-tutor']){
-  const select=document.getElementById(id);if(!select||select.dataset.searchReady)return;
-  select.dataset.searchReady='1';
-  const input=document.createElement('input');input.type='search';input.className='t4-filter-search';
-  input.placeholder='Buscar '+({ 't4-programa':'programa','t4-materia':'materia','t4-facultad':'facultad','t4-tipo':'tipo','t4-tutor':'tutor'}[id]);
-  select.parentNode.insertBefore(input,select);
-  input.addEventListener('input',()=>{
-   const term=input.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-   for(const opt of select.options){
-    const value=opt.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    opt.hidden=!!term&&!value.includes(term)&&!!opt.value;
-   }
-   select.focus();
-  });
- }
-}
-document.addEventListener('DOMContentLoaded',()=>t4EnableSearchableFilters());
 
 function downloadTab4(){
   if(!state.t4Data)return;const cols=Object.keys(state.t4Data[0]),ws=XLSX.utils.json_to_sheet(state.t4Data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Calendarios');
