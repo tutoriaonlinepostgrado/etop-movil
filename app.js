@@ -78,19 +78,31 @@ function openCourse(c){
 let calendarFiltered=[],calendarOffset=0;
 function optionSelect(label,values){
  const wrap=make("label","calendar-filter");wrap.append(make("span","",label));
- const select=make("select");select.append(new Option("Todos",""));
- values.forEach(v=>select.append(new Option(v,v)));wrap.append(select);return {wrap,select};
+ const input=make("input","calendar-filter-input");input.type="search";input.placeholder="Todos · buscar "+label.toLowerCase();input.setAttribute("aria-label","Filtrar por "+label);
+ const datalist=make("datalist");datalist.id="cal-options-"+label.toLowerCase().replace(/[^a-z0-9]/g,"-");
+ values.forEach(v=>datalist.append(new Option(v,v)));input.setAttribute("list",datalist.id);
+ wrap.append(input,datalist);return {wrap,select:input};
 }
 function renderCalendarRows(){
  const list=document.getElementById("calendar-list");list.replaceChildren();
  const subset=calendarFiltered.slice(calendarOffset,calendarOffset+35);
  for(const c of subset){
-  const card=make("button","calendar-row");
+  const card=make("article","calendar-row");
   const top=make("div","calendar-row-top");top.append(make("strong","",field(c,"nombre curso","NOMBRE_CURSO")||"Curso sin nombre"),make("span","",field(c,"estado","ESTADO_CAL")));
   card.append(top,make("p","","NRC "+field(c,"nrc","NRC_COD_CAL")+" · "+field(c,"codigo curso","codigo","COD_CURSO")));
   card.append(make("p","","Tutor: "+(field(c,"tutor","NOMBRE_TUTOR")||"Sin asignar")));
   const dates=make("div","calendar-row-dates");dates.append(make("span","","Inicio: "+(field(c,"fecha inicio","FECHA_INICIO")||"—")),make("span","","Término: "+(field(c,"fecha fin","FECHA_FIN")||"—")));card.append(dates);
-  card.addEventListener("click",()=>{calendarPage.hidden=true;openCourse(c);activateNav("Cursos");});list.append(card);
+  const actions=make("div","calendar-row-actions");
+  const view=make("button","calendar-action","Ver ficha");view.type="button";view.addEventListener("click",()=>{calendarPage.hidden=true;openCourse(c);activateNav("Cursos");});
+  actions.append(view);
+  const id=field(c,"id","ID");
+  if(id){
+   const edit=make("a","calendar-action calendar-edit","Editar ↗");
+   const url=new URL("https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/8d0fd473-95da-45be-8063-4cfebbbd6624");
+   url.searchParams.set("tenantId","8fbed393-d03b-49f8-be79-cd5e1f590fb2");url.searchParams.set("ids",id);
+   edit.href=url.href;edit.target="_blank";edit.rel="noopener noreferrer";actions.append(edit);
+  }
+  card.append(actions);list.append(card);
  }
  document.getElementById("calendar-count").textContent=calendarFiltered.length+" cursos · mostrando "+(calendarFiltered.length?calendarOffset+1:0)+"–"+Math.min(calendarOffset+35,calendarFiltered.length);
  document.getElementById("calendar-prev").disabled=calendarOffset===0;
@@ -120,8 +132,14 @@ async function openCalendars(selectedCourse=null){
    const values=[...new Set(data.map(c=>field(c,key)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
    const control=optionSelect(label,values);filters.append(control.wrap);selects[key]=control.select;
   }
-  if(selectedCourse){selects.intake.value=intake;selects.intake.disabled=true;}
-  calendarPage.append(filters,make("p","calendar-count",""));
+  if(selectedCourse){selects.intake.value=intake;selects.intake.readOnly=true;}
+  calendarPage.append(filters);
+  const toolbar=make("div","calendar-toolbar");
+  const newCourse=make("a","calendar-new","＋ Agregar curso en SharePoint ↗");
+  newCourse.href="https://unabportal365.sharepoint.com/sites/actasynrc/Lists/NRC_TUTOR_ACTUAL/NewForm.aspx";
+  newCourse.target="_blank";newCourse.rel="noopener noreferrer";
+  toolbar.append(newCourse,make("p","detail-caption","La consulta utiliza el catálogo publicado. Editar y agregar abren Microsoft 365 con tus permisos institucionales; los cambios no se guardan en el catálogo local."));
+  calendarPage.append(toolbar,make("p","calendar-count",""));
   calendarPage.lastChild.id="calendar-count";
   const list=make("div","calendar-list");list.id="calendar-list";calendarPage.append(list);
   const pager=make("div","calendar-pager");
@@ -133,12 +151,12 @@ async function openCalendars(selectedCourse=null){
   const apply=()=>{
    const q=norm(query.value);
    calendarFiltered=data.filter(c=>
-    (!q||["nrc","NRC_COD_CAL","nombre curso","NOMBRE_CURSO","tutor","codigo curso","codigo"].some(k=>norm(c[k]).includes(q)))&&
-    Object.entries(selects).every(([key,select])=>!select.value||field(c,key)===select.value)
+    (!q||["nrc","NRC_COD_CAL","nombre curso","NOMBRE_CURSO","tutor","codigo curso","codigo","intake","facultad","estado","programa"].some(k=>norm(c[k]).includes(q)))&&
+    Object.entries(selects).every(([key,input])=>!input.value||norm(field(c,key)).includes(norm(input.value)))
    ).sort((a,b)=>field(a,"fecha inicio","FECHA_INICIO").localeCompare(field(b,"fecha inicio","FECHA_INICIO")));
    calendarOffset=0;renderCalendarRows();
   };
-  query.addEventListener("input",apply);Object.values(selects).forEach(el=>el.addEventListener("change",apply));apply();
+  query.addEventListener("input",apply);Object.values(selects).forEach(el=>el.addEventListener("input",apply));apply();
  }catch(e){calendarPage.append(make("p","","No se pudo cargar el catálogo. Revisa la conexión y vuelve a intentar."));}
 }
 
