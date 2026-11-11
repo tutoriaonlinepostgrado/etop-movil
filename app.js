@@ -62,7 +62,7 @@ function openCourse(c){
  ["Base Semáforo",students?.href],
  ["Web de Integración",integration?.href],
  ["Editar curso","",()=>openCourseEditor(c,null,"ficha")],
- ["Incidencias · Google Studio","",()=>openIncidents(c)]
+ ["Ver incidencias del curso","",()=>openIncidents(c)]
  ];
  for(const [label,url,action] of links){
   let b;
@@ -205,13 +205,13 @@ function dashboardCard(label,count,description,action){
 }
 function openIncidents(c=null){
  const url=new URL(INCIDENTS_URL);
- if(c){const nrc=field(c,"nrc","NRC_COD_CAL");if(nrc)url.searchParams.set("nrc",nrc);}
+ if(c){const nrc=field(c,"nrc","NRC_COD_CAL");if(nrc){url.searchParams.set("nrc",nrc);url.searchParams.set("vista","curso");url.searchParams.set("embedded","1");}}else{url.searchParams.set("embedded","1");}
  const target=url.href;
  const returnCourse=c;
  hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
  const back=make("button","calendar-back",returnCourse?"← Volver a ficha 360":"← Volver a inicio");
  back.onclick=()=>{editorPage.replaceChildren();editorPage.hidden=true;if(returnCourse)openCourse(returnCourse);else showMain();};
- editorPage.append(back,make("h2","","Incidencias · Google Studio"));
+ editorPage.append(back,make("h2","",returnCourse?"Incidencias · NRC "+field(returnCourse,"nrc","NRC_COD_CAL"):"Incidencias · Google Studio"));
  const frame=make("iframe","editor-frame");frame.title="Gestión de incidencias ETOP";frame.src=target;frame.setAttribute("loading","eager");editorPage.append(frame);
  const link=make("a","calendar-new","Abrir incidencias en ventana aparte ↗");link.href=target;link.target="_blank";link.rel="noopener noreferrer";editorPage.append(link);
  editorPage.append(make("p","detail-caption","Aplicación oficial de incidencias creada en Google AI Studio. Si no se muestra integrada, usa la apertura alternativa."));
