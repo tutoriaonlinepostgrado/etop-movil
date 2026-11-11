@@ -61,7 +61,7 @@ function openCourse(c){
  ["Cursos del intake",sharepointIntake?.href],
  ["Base Semáforo",students?.href],
  ["Web de Integración",integration?.href],
- ["Editar curso · Power Apps",editor?.href],
+ ["Editar curso","",()=>openCourseEditor(c,null,"ficha")],
  ["Incidencias",nrc?"https://tutoriaonlinepostgrado.github.io/sitiowebetop/incidencias.html?nrc="+encodeURIComponent(nrc):""]
  ];
  for(const [label,url,action] of links){
@@ -104,21 +104,21 @@ function renderCalendarRows(){
  document.getElementById("calendar-next").disabled=calendarOffset+35>=calendarFiltered.length;
 }
 const POWERAPP_EDITOR="https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/8d0fd473-95da-45be-8063-4cfebbbd6624";
-let editorReturnCourse=null;
+let editorReturnCourse=null,editorReturnView="calendarios",editorOriginCourse=null;
 const editorPage=make("section","editor-page");editorPage.id="editor-page";editorPage.hidden=true;document.querySelector("main").append(editorPage);
 function closeCourseEditor(){
  editorPage.replaceChildren();editorPage.hidden=true;
- if(editorReturnCourse){openCalendars(editorReturnCourse);}else{openCalendars();}
+ if(editorReturnView==="ficha"&&editorOriginCourse){openCourse(editorOriginCourse);activateNav("Cursos");}else if(editorReturnCourse){openCalendars(editorReturnCourse);}else{openCalendars();}
 }
-function openCourseEditor(c,contextCourse=null){
+function openCourseEditor(c,contextCourse=null,origin="calendarios"){
  const id=field(c,"id","ID");
  if(!id){alert("El catálogo no contiene el ID de SharePoint necesario para abrir el editor de este curso.");return;}
- editorReturnCourse=contextCourse;
+ editorReturnCourse=contextCourse;editorReturnView=origin;editorOriginCourse=c;
  const url=new URL(POWERAPP_EDITOR);url.searchParams.set("tenantId","8fbed393-d03b-49f8-be79-cd5e1f590fb2");url.searchParams.set("ids",id);
  const target=url.href;
  hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
  const header=make("div","editor-top");
- const back=make("button","calendar-back","← Volver a calendarios");back.type="button";back.addEventListener("click",closeCourseEditor);
+ const back=make("button","calendar-back",origin==="ficha"?"← Volver a ficha 360":"← Volver a calendarios");back.type="button";back.addEventListener("click",closeCourseEditor);
  const title=make("div","");title.append(make("h2","","Editar curso"),make("p","detail-caption",field(c,"nombre curso","NOMBRE_CURSO")||"Curso ETOP"),make("p","detail-caption","NRC "+(field(c,"nrc","NRC_COD_CAL")||"")));
  header.append(back,title);editorPage.append(header);
  const notice=make("p","detail-caption","Editor institucional de Microsoft Power Apps. Inicia sesión con tu cuenta UNAB si se solicita. Si el formulario no aparece, utiliza Abrir editor.");
