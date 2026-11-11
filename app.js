@@ -206,6 +206,7 @@ function dashboardCard(label,count,description,action){
 function openIncidents(c=null){
  const url=new URL(INCIDENTS_URL);
  if(c){const nrc=field(c,"nrc","NRC_COD_CAL");if(nrc){url.searchParams.set("nrc",nrc);url.searchParams.set("vista","curso");url.searchParams.set("embedded","1");}}else{url.searchParams.set("embedded","1");}
+ url.searchParams.set("revision","mobile-compact-20261110");
  const target=url.href;
  const returnCourse=c;
  hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
