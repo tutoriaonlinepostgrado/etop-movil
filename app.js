@@ -203,37 +203,76 @@ function dashboardCard(label,count,description,action){
  b.append(make("strong","",String(count)),make("span","",label),make("small","",description));
  b.addEventListener("click",action);return b;
 }
-function openIncidents(c=null){
- const url=new URL(INCIDENTS_URL);
- const nrc=c?field(c,"nrc","NRC_COD_CAL"):"";
- if(nrc){url.searchParams.set("nrc",nrc);url.searchParams.set("vista","curso");}
- url.searchParams.set("embedded","1");
+const ETOP_INCIDENCES_JSON="https://tutoriaonlinepostgrado.github.io/sitiowebetop/incidencias.json";
+const ETOP_INC_POWERAPP="https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/c71f7c75-4561-43ed-8824-0f1cb74d1967?tenantId=8fbed393-d03b-49f8-be79-cd5e1f590fb2&source=iframe";
+function incidentValue(x,...keys){for(const k of keys){const v=x?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim();}return "";}
+function incidentUrl(value){const v=typeof value==="object"&&value?value.Url||value.url||value.Value||value.value:value;try{const u=new URL(String(v||""));return u.protocol==="https:"?u.href:"";}catch{return "";}}
+function incidentAction(label,url,kind=""){
+ if(!url)return null;
+ const a=make("a","incident-action "+kind,label);a.href=url;a.target="_blank";a.rel="noopener noreferrer";return a;
+}
+function incidentDetails(label,value){if(!value)return null;const wrap=make("div","incident-description");wrap.append(make("span","",label),make("p","",value));return wrap;}
+function incidentCard(item,index,course){
+ const state=incidentValue(item,"estadoIncidencia","ESTADO_INCIDENCIA").toUpperCase();
+ const card=make("article","native-incident-card");
+ const top=make("div","native-incident-top");
+ top.append(make("strong","","Incidencia "+(incidentValue(item,"idIncidencia","id","ID")||String(index+1))));
+ const badge=make("span","native-incident-status",state||"SIN ESTADO");
+ if(state.includes("PENDIENTE"))badge.classList.add("is-pending");
+ else if(state.includes("CORREGIDA"))badge.classList.add("is-corrected");
+ else if(state.includes("DERIVAD"))badge.classList.add("is-derived");
+ top.append(badge);card.append(top);
+ const tags=make("div","native-incident-tags");
+ for(const v of [incidentValue(item,"tipoQA","TIPO_QA"),incidentValue(item,"categoria","CATEGORIA"),incidentValue(item,"semanaUnidad","semana")])if(v)tags.append(make("span","",v));
+ if(tags.childElementCount)card.append(tags);
+ const description=incidentDetails("Descripción",incidentValue(item,"descripcionIncidencia","DESCRIPCION_INCIDENCIA"));
+ if(description)card.append(description);
+ const solution=incidentDetails("Solución registrada",incidentValue(item,"descripcionSolucion","DESCRIPCION_SOLUCION"));
+ if(solution){const d=make("details","native-incident-more");d.append(make("summary","","Ver solución registrada"),solution);card.append(d);}
+ const actions=make("div","native-incident-actions");
+ const canvas=incidentAction("Abrir Canvas ↗",incidentUrl(item.urlCanvas||item.URL_QA2_FI_Url||course.URL_CANVAS));
+ const evidence=incidentAction("Ver evidencia ↗",incidentUrl(item.urlEvidencia||item.URL_EVIDENCIA));
+ const manageUrl=new URL(ETOP_INC_POWERAPP);manageUrl.searchParams.set("nrc",field(course,"nrc","NRC_COD_CAL"));
+ const manage=incidentAction("Gestionar ↗",manageUrl.href,"primary");
+ for(const link of [canvas,evidence,manage])if(link)actions.append(link);
+ card.append(actions);return card;
+}
+async function openIncidents(c=null){
  const returnCourse=c;
  hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
  editorPage.classList.add("incident-workspace");
+ const nrc=c?field(c,"nrc","NRC_COD_CAL"):"";
  const header=make("div","incident-workspace-header");
- const back=make("button","incident-nav-back",returnCourse?"← Ficha 360":"← Inicio");
- back.type="button";back.onclick=()=>{
-  editorPage.replaceChildren();editorPage.classList.remove("incident-workspace");editorPage.hidden=true;
-  if(returnCourse)openCourse(returnCourse);else showMain();
- };
+ const back=make("button","incident-nav-back",c?"← Ficha 360":"← Inicio");
+ back.type="button";back.onclick=()=>{editorPage.replaceChildren();editorPage.classList.remove("incident-workspace");editorPage.hidden=true;if(returnCourse)openCourse(returnCourse);else showMain();};
  const heading=make("div","incident-workspace-title");
- heading.append(make("strong","",nrc?"Incidencias del curso":"Gestión de incidencias"));
+ heading.append(make("strong","",nrc?"Incidencias del curso":"Incidencias ETOP"));
  if(nrc)heading.append(make("small","",nrc));
- const refresh=make("button","incident-nav-refresh","↻ Actualizar");
- refresh.type="button";refresh.title="Volver a consultar los datos de incidencias";
- const external=make("a","incident-nav-external","Abrir ↗");
- external.target="_blank";external.rel="noopener noreferrer";
- const frame=make("iframe","editor-frame incident-frame");
- frame.title=nrc?"Incidencias del NRC "+nrc:"Gestión de incidencias ETOP";
- frame.setAttribute("loading","eager");
- const updateUrl=()=>{const next=new URL(url.href);next.searchParams.set("t",String(Date.now()));frame.src=next.href;external.href=next.href;};
- refresh.addEventListener("click",()=>{refresh.disabled=true;refresh.textContent="Actualizando…";updateUrl();});
- frame.addEventListener("load",()=>{refresh.disabled=false;refresh.textContent="↻ Actualizar";});
- header.append(back,heading,refresh,external);
- editorPage.append(header,frame);
- updateUrl();
- window.scrollTo(0,0);
+ const refresh=make("button","incident-nav-refresh","↻ Actualizar");refresh.type="button";
+ header.append(back,heading,refresh);editorPage.append(header);
+ const body=make("div","native-incidents-body");editorPage.append(body);
+ const load=async()=>{
+  refresh.disabled=true;body.replaceChildren(make("p","native-incident-message","Consultando incidencias publicadas…"));
+  try{
+   const res=await fetch(ETOP_INCIDENCES_JSON+"?t="+Date.now(),{cache:"no-store"});
+   if(!res.ok)throw Error("HTTP "+res.status);
+   const all=await res.json();if(!Array.isArray(all))throw Error("Formato de datos inesperado");
+   body.replaceChildren();
+   if(!c){const open=incidentAction("Abrir gestión general de incidencias ↗",INCIDENTS_URL,"primary");body.append(make("p","native-incident-message","Selecciona un NRC desde el buscador principal para consultar sus incidencias."));if(open)body.append(open);return;}
+   const courseId=field(c,"id","ID");
+   if(!courseId){body.append(make("p","native-incident-message","Este curso no tiene identificador de SharePoint en el catálogo. No es posible asociar sus incidencias con seguridad."));return;}
+   const rows=all.filter(x=>String(x.cursoId??"").trim()===String(courseId).trim());
+   const incidents=rows.filter(x=>incidentValue(x,"qaIncidencias").toUpperCase()==="CON INCIDENCIA");
+   const info=make("div","native-incidents-summary");
+   info.append(make("strong","",field(c,"nombre curso","NOMBRE_CURSO")||"Curso ETOP"),make("span","",incidents.length+" "+(incidents.length===1?"incidencia registrada":"incidencias registradas")));
+   body.append(info);
+   if(!incidents.length){body.append(make("p","native-incident-message",rows.length?"No hay incidencias registradas en los controles QA2 publicados.":"No se encontraron registros QA2 para este NRC en el catálogo publicado."));return;}
+   incidents.forEach((item,i)=>body.append(incidentCard(item,i,c)));
+   body.append(make("p","native-incident-footnote","Consulta de solo lectura desde el consolidado publicado. La gestión se realiza en Power Apps institucional; pulsa Actualizar para consultar los cambios publicados."));
+  }catch(e){body.replaceChildren(make("p","native-incident-error","No fue posible consultar las incidencias: "+e.message+". Comprueba la conexión e intenta actualizar."));}
+  finally{refresh.disabled=false;}
+ };
+ refresh.addEventListener("click",load);load();window.scrollTo(0,0);
 }
 function renderHomeDashboard(data){
  homeDashboard.replaceChildren();
