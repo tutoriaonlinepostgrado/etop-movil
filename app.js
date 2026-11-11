@@ -212,7 +212,7 @@ function openIncidents(c=null){
  const back=make("button","calendar-back",returnCourse?"← Volver a ficha 360":"← Volver a inicio");
  back.onclick=()=>{editorPage.replaceChildren();editorPage.hidden=true;if(returnCourse)openCourse(returnCourse);else showMain();};
  editorPage.append(back,make("h2","",returnCourse?"Incidencias · NRC "+field(returnCourse,"nrc","NRC_COD_CAL"):"Incidencias · Google Studio"));
- const frame=make("iframe","editor-frame");frame.title="Gestión de incidencias ETOP";frame.src=target;frame.setAttribute("loading","eager");editorPage.append(frame);
+ const frame=make("iframe","editor-frame incident-frame");frame.title="Gestión de incidencias ETOP";frame.src=target;frame.setAttribute("loading","eager");editorPage.append(frame);
  const link=make("a","calendar-new","Abrir incidencias en ventana aparte ↗");link.href=target;link.target="_blank";link.rel="noopener noreferrer";editorPage.append(link);
  editorPage.append(make("p","detail-caption","Aplicación oficial de incidencias creada en Google AI Studio. Si no se muestra integrada, usa la apertura alternativa."));
  window.scrollTo(0,0);
