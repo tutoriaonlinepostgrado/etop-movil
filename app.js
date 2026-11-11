@@ -62,7 +62,7 @@ function openCourse(c){
  ["Base Semáforo",students?.href],
  ["Web de Integración",integration?.href],
  ["Editar curso","",()=>openCourseEditor(c,null,"ficha")],
- ["Incidencias",nrc?"https://tutoriaonlinepostgrado.github.io/sitiowebetop/incidencias.html?nrc="+encodeURIComponent(nrc):""]
+ ["Incidencias · Google Studio",nrc?"https://tutoriaonlinepostgrado.github.io/etop-incidencias-app/?nrc="+encodeURIComponent(nrc):""]
  ];
  for(const [label,url,action] of links){
   let b;
@@ -128,7 +128,7 @@ function openCourseEditor(c,contextCourse=null,origin="calendarios"){
  editorPage.append(make("p","detail-caption","Al regresar, el catálogo público puede tardar en reflejar los cambios guardados en SharePoint."));
  window.scrollTo(0,0);
 }
-async function openCalendars(selectedCourse=null){
+async function openCalendars(selectedCourse=null,initialFilters={}){
  calendarContextCourse=selectedCourse;editorPage.hidden=true;
  hideMain();calendarPage.hidden=false;activateNav("Cursos");calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consultando catálogo de cursos..."));
  window.scrollTo(0,0);
@@ -154,6 +154,7 @@ async function openCalendars(selectedCourse=null){
    const control=optionSelect(label,values);filters.append(control.wrap);selects[key]=control.select;
   }
   if(selectedCourse){selects.intake.value=intake;selects.intake.readOnly=true;}
+  if(initialFilters.status)selects.estado.value=initialFilters.status;
   calendarPage.append(filters);
   const toolbar=make("div","calendar-toolbar");
   const newCourse=make("a","calendar-new","＋ Agregar curso en SharePoint ↗");
@@ -171,7 +172,9 @@ async function openCalendars(selectedCourse=null){
   pager.append(prev,next);calendarPage.append(pager);
   const apply=()=>{
    const q=norm(query.value);
+   const today=new Date();today.setHours(0,0,0,0);
    calendarFiltered=data.filter(c=>
+    (!initialFilters.upcoming||(()=>{const d=etopDate(field(c,"fecha inicio","FECHA_INICIO"));return d&&d>=today&&(d-today)/86400000<=7;})())&&
     (!q||["nrc","NRC_COD_CAL","nombre curso","NOMBRE_CURSO","tutor","codigo curso","codigo","intake","facultad","estado","programa"].some(k=>norm(c[k]).includes(q)))&&
     Object.entries(selects).every(([key,input])=>!input.value||norm(field(c,key)).includes(norm(input.value)))
    ).sort((a,b)=>field(a,"fecha inicio","FECHA_INICIO").localeCompare(field(b,"fecha inicio","FECHA_INICIO")));
@@ -181,6 +184,53 @@ async function openCalendars(selectedCourse=null){
  }catch(e){calendarPage.append(make("p","","No se pudo cargar el catálogo. Revisa la conexión y vuelve a intentar."));}
 }
 
+
+// Panel operativo: indicadores derivados exclusivamente del catálogo publicado.
+// Las incidencias se gestionan en la aplicación oficial de Google AI Studio.
+const INCIDENTS_URL="https://tutoriaonlinepostgrado.github.io/etop-incidencias-app/";
+const homeDashboard=make("section","mobile-dashboard");homeDashboard.id="mobile-dashboard";
+const homeAnchor=document.querySelector(".tiles");homeAnchor.parentNode.insertBefore(homeDashboard,homeAnchor);
+function etopDate(v){
+ const raw=String(v||"").trim();if(!raw)return null;
+ let m=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+ if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+ m=raw.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+ if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+ const d=new Date(raw);return Number.isNaN(d.getTime())?null:d;
+}
+function dashboardCard(label,count,description,action){
+ const b=make("button","dashboard-card");b.type="button";
+ b.append(make("strong","",String(count)),make("span","",label),make("small","",description));
+ b.addEventListener("click",action);return b;
+}
+function openIncidents(c=null){
+ const url=new URL(INCIDENTS_URL);
+ if(c){const nrc=field(c,"nrc","NRC_COD_CAL");if(nrc)url.searchParams.set("nrc",nrc);}
+ window.open(url.href,"_blank","noopener,noreferrer");
+}
+function renderHomeDashboard(data){
+ homeDashboard.replaceChildren();
+ const h=make("div","dashboard-heading");h.append(make("h2","","Panel operativo"),make("span","","Catálogo ETOP"));homeDashboard.append(h);
+ const now=new Date();now.setHours(0,0,0,0);
+ const upcoming=data.filter(c=>{const d=etopDate(field(c,"fecha inicio","FECHA_INICIO"));return d&&d>=now&&(d-now)/86400000<=7;});
+ const active=data.filter(c=>norm(field(c,"estado","ESTADO_CAL"))==="activo");
+ const closing=data.filter(c=>norm(field(c,"estado","ESTADO_CAL")).includes("cierre"));
+ const cards=make("div","dashboard-grid");
+ cards.append(
+  dashboardCard("Próximos 7 días",upcoming.length,"Cursos por iniciar",()=>openCalendars(null,{upcoming:true})),
+  dashboardCard("Activos",active.length,"Cursos en ejecución",()=>openCalendars(null,{status:"ACTIVO"})),
+  dashboardCard("En cierre",closing.length,"Cursos en cierre",()=>openCalendars(null,{status:"EN CIERRE"})),
+  dashboardCard("Total",data.length,"Cursos en catálogo",()=>openCalendars())
+ );
+ homeDashboard.append(cards);
+ const actions=make("div","dashboard-shortcuts");
+ const qa=make("button","dashboard-shortcut","⚠ Incidencias · Google Studio");qa.onclick=()=>openIncidents();
+ const students=make("a","dashboard-shortcut","♧ Base de estudiantes ↗");students.href="https://unabportal365.sharepoint.com/sites/actasynrc/Lists/BASESEMAFORO_20/Todosloselementos.aspx";students.target="_blank";students.rel="noopener noreferrer";
+ const tools=make("a","dashboard-shortcut","▤ Herramientas de carga");tools.href="./herramientas.html";
+ actions.append(qa,students,tools);homeDashboard.append(actions);
+ homeDashboard.append(make("p","dashboard-note","Indicadores calculados a partir del catálogo publicado, no de SharePoint en tiempo real. Las incidencias se abren en la nueva aplicación Google Studio."));
+}
+loadCourses().then(renderHomeDashboard).catch(()=>{homeDashboard.append(make("p","dashboard-note","Panel operativo no disponible sin conexión al catálogo."));});
 const norm = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
 const safe = value => String(value ?? "").trim();
 const field = (obj,...keys) => { for(const key of keys) if(obj[key]!==undefined && obj[key]!==null && obj[key]!=="")return safe(obj[key]); return ""; };
