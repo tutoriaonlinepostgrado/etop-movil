@@ -15,10 +15,11 @@ const detailExtras=()=>document.querySelectorAll(".tiles,.notice,main > h2");
 const calendarPage=make("section","calendar-page");calendarPage.hidden=true;calendarPage.id="calendar-page";document.querySelector("main").append(calendarPage);
 function hideMain(){detail.hidden=true;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);}
 function activateNav(name){document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===name));}
-function showMain(){calendarPage.hidden=true;detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;detailExtras().forEach(el=>el.hidden=false);}
+function showMain(){editorPage.hidden=true;calendarPage.hidden=true;detail.hidden=true;results.hidden=false;document.querySelector(".panel").hidden=false;document.querySelector(".welcome").hidden=false;detailExtras().forEach(el=>el.hidden=false);}
 document.getElementById("detail-back").addEventListener("click",()=>{showMain();results.scrollIntoView({block:"start"});});
 function make(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
 function openCourse(c){
+ editorPage.hidden=true;
  const content=document.getElementById("detail-content");content.replaceChildren();
  const state=field(c,"estado","ESTADO_CAL")||"Sin estado";
  const heading=make("div","course-heading");
@@ -75,7 +76,7 @@ function openCourse(c){
 }
 
 
-let calendarFiltered=[],calendarOffset=0;
+let calendarFiltered=[],calendarOffset=0,calendarContextCourse=null;
 function optionSelect(label,values){
  const wrap=make("label","calendar-filter");wrap.append(make("span","",label));
  const input=make("input","calendar-filter-input");input.type="search";input.placeholder="Todos · buscar "+label.toLowerCase();input.setAttribute("aria-label","Filtrar por "+label);
@@ -95,20 +96,40 @@ function renderCalendarRows(){
   const actions=make("div","calendar-row-actions");
   const view=make("button","calendar-action","Ver ficha");view.type="button";view.addEventListener("click",()=>{calendarPage.hidden=true;openCourse(c);activateNav("Cursos");});
   actions.append(view);
-  const id=field(c,"id","ID");
-  if(id){
-   const edit=make("a","calendar-action calendar-edit","Editar ↗");
-   const url=new URL("https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/8d0fd473-95da-45be-8063-4cfebbbd6624");
-   url.searchParams.set("tenantId","8fbed393-d03b-49f8-be79-cd5e1f590fb2");url.searchParams.set("ids",id);
-   edit.href=url.href;edit.target="_blank";edit.rel="noopener noreferrer";actions.append(edit);
-  }
+  const edit=make("button","calendar-action calendar-edit","Editar curso");edit.type="button";edit.addEventListener("click",()=>openCourseEditor(c,calendarContextCourse));actions.append(edit);
   card.append(actions);list.append(card);
  }
  document.getElementById("calendar-count").textContent=calendarFiltered.length+" cursos · mostrando "+(calendarFiltered.length?calendarOffset+1:0)+"–"+Math.min(calendarOffset+35,calendarFiltered.length);
  document.getElementById("calendar-prev").disabled=calendarOffset===0;
  document.getElementById("calendar-next").disabled=calendarOffset+35>=calendarFiltered.length;
 }
+const POWERAPP_EDITOR="https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/8d0fd473-95da-45be-8063-4cfebbbd6624";
+let editorReturnCourse=null;
+const editorPage=make("section","editor-page");editorPage.id="editor-page";editorPage.hidden=true;document.querySelector("main").append(editorPage);
+function closeCourseEditor(){
+ editorPage.replaceChildren();editorPage.hidden=true;
+ if(editorReturnCourse){openCalendars(editorReturnCourse);}else{openCalendars();}
+}
+function openCourseEditor(c,contextCourse=null){
+ const id=field(c,"id","ID");
+ if(!id){alert("El catálogo no contiene el ID de SharePoint necesario para abrir el editor de este curso.");return;}
+ editorReturnCourse=contextCourse;
+ const url=new URL(POWERAPP_EDITOR);url.searchParams.set("tenantId","8fbed393-d03b-49f8-be79-cd5e1f590fb2");url.searchParams.set("ids",id);
+ const target=url.href;
+ hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
+ const header=make("div","editor-top");
+ const back=make("button","calendar-back","← Volver a calendarios");back.type="button";back.addEventListener("click",closeCourseEditor);
+ const title=make("div","");title.append(make("h2","","Editar curso"),make("p","detail-caption",field(c,"nombre curso","NOMBRE_CURSO")||"Curso ETOP"),make("p","detail-caption","NRC "+(field(c,"nrc","NRC_COD_CAL")||"")));
+ header.append(back,title);editorPage.append(header);
+ const notice=make("p","detail-caption","Editor institucional de Microsoft Power Apps. Inicia sesión con tu cuenta UNAB si se solicita. Si el formulario no aparece, utiliza Abrir editor.");
+ editorPage.append(notice);
+ const frame=make("iframe","editor-frame");frame.title="Editor institucional del curso";frame.src=target;frame.setAttribute("loading","eager");frame.setAttribute("referrerpolicy","strict-origin-when-cross-origin");editorPage.append(frame);
+ const fallback=make("a","calendar-new","Abrir editor en Microsoft 365 ↗");fallback.href=target;fallback.target="_blank";fallback.rel="noopener noreferrer";editorPage.append(fallback);
+ editorPage.append(make("p","detail-caption","Al regresar, el catálogo público puede tardar en reflejar los cambios guardados en SharePoint."));
+ window.scrollTo(0,0);
+}
 async function openCalendars(selectedCourse=null){
+ calendarContextCourse=selectedCourse;editorPage.hidden=true;
  hideMain();calendarPage.hidden=false;activateNav("Cursos");calendarPage.replaceChildren(make("h2","","Calendarios ETOP"),make("p","detail-caption","Consultando catálogo de cursos..."));
  window.scrollTo(0,0);
  try{
