@@ -205,17 +205,34 @@ function dashboardCard(label,count,description,action){
 }
 function openIncidents(c=null){
  const url=new URL(INCIDENTS_URL);
- if(c){const nrc=field(c,"nrc","NRC_COD_CAL");if(nrc){url.searchParams.set("nrc",nrc);url.searchParams.set("vista","curso");url.searchParams.set("embedded","1");}}else{url.searchParams.set("embedded","1");}
- url.searchParams.set("revision","mobile-compact-20261110");
- const target=url.href;
+ const nrc=c?field(c,"nrc","NRC_COD_CAL"):"";
+ if(nrc){url.searchParams.set("nrc",nrc);url.searchParams.set("vista","curso");}
+ url.searchParams.set("embedded","1");
  const returnCourse=c;
  hideMain();calendarPage.hidden=true;editorPage.hidden=false;editorPage.replaceChildren();
- const back=make("button","calendar-back",returnCourse?"← Volver a ficha 360":"← Volver a inicio");
- back.onclick=()=>{editorPage.replaceChildren();editorPage.hidden=true;if(returnCourse)openCourse(returnCourse);else showMain();};
- editorPage.append(back,make("h2","",returnCourse?"Incidencias · NRC "+field(returnCourse,"nrc","NRC_COD_CAL"):"Incidencias · Google Studio"));
- const frame=make("iframe","editor-frame incident-frame");frame.title="Gestión de incidencias ETOP";frame.src=target;frame.setAttribute("loading","eager");editorPage.append(frame);
- const link=make("a","calendar-new","Abrir incidencias en ventana aparte ↗");link.href=target;link.target="_blank";link.rel="noopener noreferrer";editorPage.append(link);
- editorPage.append(make("p","detail-caption","Aplicación oficial de incidencias creada en Google AI Studio. Si no se muestra integrada, usa la apertura alternativa."));
+ editorPage.classList.add("incident-workspace");
+ const header=make("div","incident-workspace-header");
+ const back=make("button","incident-nav-back",returnCourse?"← Ficha 360":"← Inicio");
+ back.type="button";back.onclick=()=>{
+  editorPage.replaceChildren();editorPage.classList.remove("incident-workspace");editorPage.hidden=true;
+  if(returnCourse)openCourse(returnCourse);else showMain();
+ };
+ const heading=make("div","incident-workspace-title");
+ heading.append(make("strong","",nrc?"Incidencias del curso":"Gestión de incidencias"));
+ if(nrc)heading.append(make("small","",nrc));
+ const refresh=make("button","incident-nav-refresh","↻ Actualizar");
+ refresh.type="button";refresh.title="Volver a consultar los datos de incidencias";
+ const external=make("a","incident-nav-external","Abrir ↗");
+ external.target="_blank";external.rel="noopener noreferrer";
+ const frame=make("iframe","editor-frame incident-frame");
+ frame.title=nrc?"Incidencias del NRC "+nrc:"Gestión de incidencias ETOP";
+ frame.setAttribute("loading","eager");
+ const updateUrl=()=>{const next=new URL(url.href);next.searchParams.set("t",String(Date.now()));frame.src=next.href;external.href=next.href;};
+ refresh.addEventListener("click",()=>{refresh.disabled=true;refresh.textContent="Actualizando…";updateUrl();});
+ frame.addEventListener("load",()=>{refresh.disabled=false;refresh.textContent="↻ Actualizar";});
+ header.append(back,heading,refresh,external);
+ editorPage.append(header,frame);
+ updateUrl();
  window.scrollTo(0,0);
 }
 function renderHomeDashboard(data){
