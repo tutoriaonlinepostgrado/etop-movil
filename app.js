@@ -11,7 +11,7 @@ const detail=document.createElement("section");
 detail.id="course-detail";detail.hidden=true;detail.setAttribute("aria-label","Ficha del curso");
 detail.innerHTML='<div class="detail-header"><button type="button" id="detail-back">← Volver a resultados</button><span>FICHA 360 · ETOP MÓVIL</span></div><div id="detail-content"></div>';
 results.insertAdjacentElement("afterend",detail);
-const detailExtras=()=>document.querySelectorAll(".tiles,.notice,main > h2");
+const detailExtras=()=>document.querySelectorAll(".tiles,.notice,main > h2,.mobile-dashboard");
 const calendarPage=make("section","calendar-page");calendarPage.hidden=true;calendarPage.id="calendar-page";document.querySelector("main").append(calendarPage);
 function hideMain(){detail.hidden=true;results.hidden=true;document.querySelector(".panel").hidden=true;document.querySelector(".welcome").hidden=true;detailExtras().forEach(el=>el.hidden=true);}
 function activateNav(name){document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===name));}
