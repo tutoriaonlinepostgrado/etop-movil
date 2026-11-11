@@ -21,3 +21,14 @@
 
 /* Incidencias por NRC: aprovechar ancho y alto del celular */
 .editor-page:has(.incident-frame){padding-top:0}.editor-page:has(.incident-frame)>h2{font-size:17px;margin:12px 0 8px}.incident-frame{height:calc(100dvh - 220px);min-height:500px;margin:8px 0;border:0;border-radius:8px}.editor-page:has(.incident-frame)>.calendar-new{display:inline-block;margin-top:8px}@media(max-width:600px){.editor-page:has(.incident-frame){margin-left:-10px;margin-right:-10px}.editor-page:has(.incident-frame)>.calendar-back,.editor-page:has(.incident-frame)>h2,.editor-page:has(.incident-frame)>.calendar-new,.editor-page:has(.incident-frame)>.detail-caption{margin-left:10px;margin-right:10px}.incident-frame{width:100%;height:calc(100dvh - 195px);min-height:480px}}
+
+/* Espacio de incidencias exclusivo ETOP Móvil: sin cambios en la app original */
+.incident-workspace{padding:0!important;margin:0!important;max-width:none!important}
+.incident-workspace-header{display:flex;align-items:center;gap:8px;padding:9px 0 11px;flex-wrap:wrap}
+.incident-nav-back,.incident-nav-refresh,.incident-nav-external{border:1px solid #cbdceb;border-radius:10px;background:#eef5fb;color:#17466e;padding:9px 10px;font:600 12px/1.2 system-ui,sans-serif;text-decoration:none;cursor:pointer;white-space:nowrap}
+.incident-nav-refresh:disabled{opacity:.6}
+.incident-workspace-title{flex:1;min-width:135px;display:flex;flex-direction:column;gap:3px}
+.incident-workspace-title strong{font:700 15px/1.2 system-ui,sans-serif;color:#193650}
+.incident-workspace-title small{font:500 11px/1.2 system-ui,sans-serif;color:#60768a;overflow-wrap:anywhere}
+.incident-workspace .incident-frame{display:block;width:100%;height:calc(100dvh - 185px);min-height:520px;margin:0;border:0;border-radius:10px;background:#fff}
+@media(max-width:600px){.incident-workspace{margin-left:-10px!important;margin-right:-10px!important}.incident-workspace-header{padding:9px 10px}.incident-workspace .incident-frame{height:calc(100dvh - 172px);min-height:500px;border-radius:0}.incident-nav-external{padding:9px 8px}}
