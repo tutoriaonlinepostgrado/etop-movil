@@ -145,6 +145,13 @@ async function openCalendars(selectedCourse=null,initialFilters={}){
    const back=make("button","calendar-back","← Volver a la ficha");back.addEventListener("click",()=>openCourse(selectedCourse));calendarPage.append(back);
    calendarPage.append(make("p","calendar-scope","Versión: "+intake));
   }
+  if(!selectedCourse&&!initialFilters.startDate)etopMonthCalendar(calendarPage,data,(key)=>openCalendars(null,{startDate:key}));
+  if(initialFilters.startDate){
+   const d=etopDate(initialFilters.startDate);
+   const title=make("div","etop-date-selection");
+   title.append(make("strong","","Cursos que comienzan el "+(d?d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):initialFilters.startDate)));
+   const backMonth=make("button","calendar-back","← Volver al calendario mensual");backMonth.addEventListener("click",()=>openCalendars());title.append(backMonth);calendarPage.append(title);
+  }
   const filters=make("div","calendar-filters");
   const query=make("input","calendar-query");query.placeholder="Buscar NRC, curso o tutor";query.setAttribute("aria-label","Buscar cursos del calendario");
   calendarPage.append(query);
@@ -174,6 +181,7 @@ async function openCalendars(selectedCourse=null,initialFilters={}){
    const q=norm(query.value);
    const today=new Date();today.setHours(0,0,0,0);
    calendarFiltered=data.filter(c=>
+    (!initialFilters.startDate||etopStartKey(c)===initialFilters.startDate)&&
     (!initialFilters.upcoming||(()=>{const d=etopDate(field(c,"fecha inicio","FECHA_INICIO"));return d&&d>=today&&(d-today)/86400000<=7;})())&&
     (!q||["nrc","NRC_COD_CAL","nombre curso","NOMBRE_CURSO","tutor","codigo curso","codigo","intake","facultad","estado","programa"].some(k=>norm(c[k]).includes(q)))&&
     Object.entries(selects).every(([key,input])=>!input.value||norm(field(c,key)).includes(norm(input.value)))
@@ -197,6 +205,55 @@ function etopDate(v){
  m=raw.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
  if(m)return new Date(+m[3],+m[2]-1,+m[1]);
  const d=new Date(raw);return Number.isNaN(d.getTime())?null:d;
+}
+function etopStartKey(c){
+ const d=etopDate(field(c,"fecha inicio","FECHA_INICIO"));
+ if(!d||Number.isNaN(d.getTime()))return "";
+ return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+function etopMonthCalendar(container,data,onSelect){
+ const shell=make("section","etop-month-calendar");
+ const today=new Date();let year=today.getFullYear(),month=today.getMonth();
+ const counts=new Map();
+ data.forEach(c=>{const key=etopStartKey(c);if(key)counts.set(key,(counts.get(key)||0)+1);});
+ const heading=make("div","etop-month-heading");
+ heading.append(make("strong","","Inicio de cursos"));
+ const controls=make("div","etop-month-controls");
+ const prev=make("button","","‹");prev.type="button";prev.setAttribute("aria-label","Mes anterior");
+ const label=make("span","etop-month-label","");
+ const next=make("button","","›");next.type="button";next.setAttribute("aria-label","Mes siguiente");
+ const current=make("button","etop-month-today","Hoy");current.type="button";
+ controls.append(prev,label,next,current);heading.append(controls);
+ const weekdays=make("div","etop-month-weekdays");
+ ["L","M","X","J","V","S","D"].forEach(x=>weekdays.append(make("span","",x)));
+ const grid=make("div","etop-month-grid");
+ const caption=make("p","etop-month-caption","Toca un día con cursos para consultar su listado.");
+ shell.append(heading,weekdays,grid,caption);container.append(shell);
+ const draw=()=>{
+  label.textContent=new Date(year,month,1).toLocaleDateString("es-CL",{month:"long",year:"numeric"});
+  grid.replaceChildren();
+  const first=(new Date(year,month,1).getDay()+6)%7;
+  const days=new Date(year,month+1,0).getDate();
+  for(let i=0;i<first;i++){const blank=make("span","etop-month-blank");blank.setAttribute("aria-hidden","true");grid.append(blank);}
+  let monthly=0;
+  for(let day=1;day<=days;day++){
+   const key=[year,String(month+1).padStart(2,"0"),String(day).padStart(2,"0")].join("-");
+   const n=counts.get(key)||0;monthly+=n;
+   const btn=make("button","etop-month-day"+(n?" has-courses":""));
+   btn.type="button";btn.disabled=!n;
+   if(key===etopStartKey({"fecha inicio":[today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-")}))btn.classList.add("is-today");
+   btn.append(make("span","etop-day-number",String(day)));
+   if(n)btn.append(make("strong","etop-day-count",String(n)));
+   btn.setAttribute("aria-label",day+" de "+label.textContent+": "+n+" cursos que comienzan");
+   if(n)btn.addEventListener("click",()=>onSelect(key,n));
+   grid.append(btn);
+  }
+  caption.textContent=monthly+" inicios de curso en este mes · Toca un día con número para ver sus cursos.";
+ };
+ prev.addEventListener("click",()=>{const d=new Date(year,month-1,1);year=d.getFullYear();month=d.getMonth();draw();});
+ next.addEventListener("click",()=>{const d=new Date(year,month+1,1);year=d.getFullYear();month=d.getMonth();draw();});
+ current.addEventListener("click",()=>{year=today.getFullYear();month=today.getMonth();draw();});
+ draw();return shell;
 }
 function dashboardCard(label,count,description,action){
  const b=make("button","dashboard-card");b.type="button";
@@ -289,6 +346,7 @@ function renderHomeDashboard(data){
   dashboardCard("Total",data.length,"Cursos en catálogo",()=>openCalendars())
  );
  homeDashboard.append(cards);
+ etopMonthCalendar(homeDashboard,data,(key)=>openCalendars(null,{startDate:key}));
  const actions=make("div","dashboard-shortcuts");
  const qa=make("button","dashboard-shortcut","⚠ Incidencias · Google Studio");qa.onclick=()=>openIncidents();
  const students=make("a","dashboard-shortcut","♧ Base de estudiantes ↗");students.href="https://unabportal365.sharepoint.com/sites/actasynrc/Lists/BASESEMAFORO_20/Todosloselementos.aspx";students.target="_blank";students.rel="noopener noreferrer";
