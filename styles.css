@@ -60,3 +60,26 @@
 .native-incident-error{background:#fff0ef;color:#a03c31}
 .native-incident-footnote{font-size:11px;line-height:1.5;color:#667e91;padding:3px 4px}
 @media(max-width:600px){.native-incidents-body{padding:0 10px 25px}.native-incident-card{padding:12px}.native-incident-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Calendario mensual de inicio de cursos, exclusivo de ETOP Móvil */
+.etop-month-calendar{background:#fff;border:1px solid #dce7f0;border-radius:15px;padding:13px;margin:14px 0;box-shadow:0 2px 8px #1434500a}
+.etop-month-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.etop-month-heading>strong{font-size:14px;color:#183e60}
+.etop-month-controls{display:flex;align-items:center;gap:5px}
+.etop-month-controls button{min-width:30px;height:32px;border:1px solid #d4e2ee;border-radius:8px;background:#f4f8fc;color:#1c4b75;font-size:17px;cursor:pointer}
+.etop-month-controls .etop-month-today{font-size:11px;padding:0 8px;font-weight:700}
+.etop-month-label{font-size:12px;font-weight:700;color:#294c69;text-transform:capitalize;min-width:110px;text-align:center}
+.etop-month-weekdays,.etop-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.etop-month-weekdays{margin-bottom:5px}
+.etop-month-weekdays span{text-align:center;font-size:11px;font-weight:750;color:#687e91;padding:5px 0}
+.etop-month-day{min-width:0;min-height:55px;border:1px solid #e5edf3;border-radius:9px;background:#fafcfe;color:#7890a4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px 1px}
+.etop-month-day.has-courses{background:#eaf3fd;color:#1c527e;border-color:#c5dcef;cursor:pointer}
+.etop-month-day.is-today{outline:2px solid #2c6fa7;outline-offset:-2px}
+.etop-month-day.has-courses:active{background:#d6e9fa}
+.etop-day-number{font-size:11px;font-weight:700}
+.etop-day-count{font-size:13px;font-weight:800;line-height:1.1}
+.etop-month-blank{min-height:55px}
+.etop-month-caption{font-size:11px;line-height:1.5;color:#607b91;margin:10px 0 0}
+.etop-date-selection{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:12px 0;padding:12px;background:#edf5fc;border:1px solid #d6e6f4;border-radius:11px}
+.etop-date-selection strong{font-size:13px;color:#194467;text-transform:capitalize}
+@media(max-width:390px){.etop-month-calendar{padding:9px}.etop-month-grid,.etop-month-weekdays{gap:3px}.etop-month-day,.etop-month-blank{min-height:48px}.etop-month-label{min-width:95px;font-size:11px}.etop-month-heading>strong{font-size:13px}}
