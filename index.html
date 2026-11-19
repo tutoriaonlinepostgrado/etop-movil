@@ -1,8 +1,153 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#12345a"><meta name="description" content="ETOP Móvil: acceso operativo a cursos y herramientas."><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><title>ETOP Móvil</title><link rel="stylesheet" href="./styles.css?v=21"></head>
-<body><div class="app"><header class="top"><div class="brand"><img src="./icon.svg" alt="" width="42" height="42"><div><strong>ETOP Móvil</strong><small>UNAB Online · Coordinación</small></div></div><span class="tag">Prototipo</span></header>
-<main><section class="welcome"><p class="eyebrow">ESPACIO DE TRABAJO</p><h1>Centro de cursos</h1><p>Encuentra un NRC y accede a sus herramientas desde el celular.</p></section>
-<section class="panel"><label for="search">Buscar curso</label><div class="search"><span aria-hidden="true">⌕</span><input id="search" autocomplete="off" placeholder="NRC, código, nombre o tutor"></div><button id="searchBtn">Buscar NRC</button><p id="status" role="status" aria-live="polite">Escribe un NRC y pulsa Buscar NRC.</p></section>
-<h2>Herramientas</h2><div class="tiles"><button class="tile" data-tool="Herramientas ETOP"><span>⚒</span><b>Herramientas ETOP</b><small>Carga, calendarios y carpetas</small></button><button class="tile" data-tool="Nóminas"><span>⇧</span><b>Subir nóminas</b><small>Excel y validación</small></button><button class="tile" data-tool="Calendarios"><span>▦</span><b>Calendarios</b><small>Fechas y cursos</small></button><button class="tile" data-tool="Reportes"><span>⇩</span><b>Reportes</b><small>Excel y PDF</small></button><button class="tile" data-tool="Ficha 360"><span>◎</span><b>Ficha 360</b><small>Seguimiento</small></button></div>
-<section class="notice"><strong>Modo de demostración</strong><p>La consulta de cursos utiliza el catálogo ETOP. El Centro de Herramientas conserva funciones del entorno de pruebas; verifica el destino antes de ejecutar cargas o envíos.</p></section></main>
-<nav class="bottom" aria-label="Navegación principal"><button class="active" data-nav="Inicio">⌂<small>Inicio</small></button><button data-nav="Cursos">▤<small>Cursos</small></button><button data-nav="Reportes">▥<small>Reportes</small></button><button data-nav="Ajustes">⚙<small>Ajustes</small></button></nav></div><script src="./app.js?v=21" defer></script></body></html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#12345a">
+  <meta name="description" content="ETOP Móvil: acceso operativo a cursos y herramientas.">
+  <meta property="og:title" content="ETOP Móvil">
+  <meta property="og:description" content="ETOP Móvil: acceso operativo a cursos y herramientas.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>ETOP Móvil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=22">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <a class="brand" href="./index.html#inicio" id="brand-home">
+        <img src="./icon.svg" alt="" width="38" height="38">
+        <div>
+          <strong>ETOP Móvil</strong>
+          <small>UNAB Online · Coordinación</small>
+        </div>
+      </a>
+      <div class="top-actions">
+        <button type="button" class="top-action-btn" id="header-refresh" aria-label="Actualizar catálogo">↻ Actualizar</button>
+      </div>
+    </header>
+
+    <main id="app-main">
+      <div id="home-view" class="home-layout">
+        <div class="home-primary">
+          <section class="welcome">
+            <h1>Centro de cursos</h1>
+            <p>Consulta NRCs, supervisa incidencias QA2 y accede a las herramientas de coordinación.</p>
+          </section>
+
+          <div id="portfolio-banner" class="portfolio-banner" hidden></div>
+
+          <section class="panel search-panel" aria-label="Buscador de cursos">
+            <label for="search">Buscar curso o NRC</label>
+            <div class="search">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input id="search" type="search" autocomplete="off" placeholder="NRC, código, nombre, intake o tutor">
+              <button type="button" id="searchClear" class="search-clear" aria-label="Limpiar búsqueda" hidden>×</button>
+            </div>
+            <div class="status-filters" role="group" aria-label="Filtrar por estado">
+              <button type="button" class="filter-tab active" data-status-filter="" aria-pressed="true">Todos</button>
+              <button type="button" class="filter-tab" data-status-filter="ACTIVO" aria-pressed="false">Activos</button>
+              <button type="button" class="filter-tab" data-status-filter="EN CIERRE" aria-pressed="false">En cierre</button>
+              <button type="button" class="filter-tab" data-status-filter="PREPARACION" aria-pressed="false">Preparación</button>
+            </div>
+            <button type="button" id="searchBtn">Buscar NRC</button>
+            <p id="status" role="status" aria-live="polite">Cargando catálogo ETOP…</p>
+            <div id="recent-searches" class="recent-searches" hidden></div>
+          </section>
+
+          <section id="results" aria-live="polite"></section>
+
+          <section id="favorites-section" class="favorites-section" hidden aria-label="Cursos fijados"></section>
+
+          <section class="tools-section" aria-label="Accesos operativos">
+            <div class="section-head">
+              <h2>Accesos operativos</h2>
+            </div>
+            <div class="tiles">
+              <a class="tile" href="./herramientas.html">
+                <span aria-hidden="true">⚒</span>
+                <b>Herramientas de carga</b>
+                <small>Nóminas, calendarios y carpetas</small>
+              </a>
+              <button type="button" class="tile" data-tool="Incidencias">
+                <span aria-hidden="true">⚠</span>
+                <b>Incidencias QA2</b>
+                <small id="tile-incidents-sub">Seguimiento y gestión</small>
+              </button>
+              <button type="button" class="tile" data-tool="Calendarios">
+                <span aria-hidden="true">▦</span>
+                <b>Calendarios</b>
+                <small>Filtros por versión y fechas</small>
+              </button>
+              <button type="button" class="tile" data-tool="Reportes">
+                <span aria-hidden="true">⇩</span>
+                <b>Reportes</b>
+                <small>Exportar Excel y CSV</small>
+              </button>
+              <a class="tile tile-wide" href="https://unabportal365.sharepoint.com/sites/actasynrc/Lists/BASESEMAFORO_20/Todosloselementos.aspx" target="_blank" rel="noopener noreferrer">
+                <span aria-hidden="true">▤</span>
+                <div>
+                  <b>Base de estudiantes (Semáforo) ↗</b>
+                  <small>Acceso directo a SharePoint institucional</small>
+                </div>
+              </a>
+            </div>
+          </section>
+
+          <section class="notice">
+            <strong>Alcance de datos publicados</strong>
+            <p>Las consultas utilizan los consolidados publicados por ETOP (con respaldo local para consulta sin conexión). Las ediciones y cargas institucionales se ejecutan con tus permisos Microsoft 365.</p>
+          </section>
+        </div>
+
+        <aside class="home-secondary">
+          <section id="mobile-dashboard" class="mobile-dashboard" aria-label="Panel operativo"></section>
+        </aside>
+      </div>
+
+      <section id="course-detail" hidden aria-label="Ficha del curso">
+        <div class="detail-header">
+          <button type="button" id="detail-back">← Volver</button>
+          <button type="button" id="detail-pin" class="detail-pin-btn" aria-pressed="false">☆ Fijar curso</button>
+        </div>
+        <div id="detail-content"></div>
+      </section>
+
+      <section id="calendar-page" class="calendar-page" hidden aria-label="Calendarios ETOP"></section>
+      <section id="editor-page" class="editor-page" hidden aria-label="Espacio operativo"></section>
+      <section id="reports-page" class="reports-page" hidden aria-label="Reportes y exportación"></section>
+      <section id="settings-page" class="settings-page" hidden aria-label="Ajustes de coordinación"></section>
+    </main>
+
+    <nav class="bottom" aria-label="Navegación principal">
+      <button type="button" class="active" data-nav="Inicio">
+        <span class="nav-ico" aria-hidden="true">⌂</span>
+        <small>Inicio</small>
+      </button>
+      <button type="button" data-nav="Cursos">
+        <span class="nav-ico" aria-hidden="true">▤</span>
+        <small>Cursos</small>
+      </button>
+      <a class="nav-link" href="./herramientas.html" data-nav="Herramientas">
+        <span class="nav-ico" aria-hidden="true">⚒</span>
+        <small>Herramientas</small>
+      </a>
+      <button type="button" data-nav="Reportes">
+        <span class="nav-ico" aria-hidden="true">▥</span>
+        <small>Reportes</small>
+      </button>
+      <button type="button" data-nav="Ajustes">
+        <span class="nav-ico" aria-hidden="true">⚙</span>
+        <small>Ajustes</small>
+      </button>
+    </nav>
+  </div>
+
+  <div id="app-toast" class="app-toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="./app.js?v=22"></script>
+</body>
+</html>

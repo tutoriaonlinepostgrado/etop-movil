@@ -2,11 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
 <title>Herramientas ETOP · Móvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;600;700;800&display=swap');
 
   :root {
     --bg: #1c2430;
@@ -312,17 +315,21 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
 .tab-panel>.section-title+div{margin-top:6px}
 @media(min-width:700px){.tab-panel{max-width:900px;margin:auto}.tabs-nav{max-width:900px;margin:auto}}
 .cal-mapping{padding:12px;background:#fff;border:1px solid #c8dced;border-radius:12px;margin:10px 0}.cal-mapping p{font-size:12px;color:#5e7287}.cal-map-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #e8eff6;font-size:12px}.cal-map-row span{flex:1;min-width:0;overflow-wrap:anywhere}.cal-map-row select{flex:1;min-width:0;font-size:13px!important}.cal-mapping>.btn{margin-top:12px;width:100%}
-</style></head>
+</style>
+<link rel="stylesheet" href="./herramientas-shell.css?v=22">
+</head>
 <body>
 
-<a class="mobile-return" href="./index.html">← Volver a ETOP Móvil</a>
-<div class="header">
-  <div>
-    <h1>⚡ Herramientas ETOP Móvil</h1>
-    
-  </div>
-  <button class="btn-clear" onclick="clearAll()">🧹 Limpiar Todo</button>
-</div>
+<header class="etop-top">
+  <a class="etop-brand" href="./index.html#inicio">
+    <img src="./icon.svg" alt="" width="38" height="38">
+    <div>
+      <strong>Herramientas ETOP</strong>
+      <small>UNAB Online · Coordinación</small>
+    </div>
+  </a>
+  <button type="button" class="etop-clear-btn" onclick="clearAll()">Limpiar todo</button>
+</header>
 
 <div class="tabs-nav">
   <button class="tab-btn active" onclick="switchTab(0, this)">📋 Estudiantes</button>
@@ -441,154 +448,7 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
   <div id="t1-sp-result"></div>
 </div>
 
-<!-- TAB 2: CORREOS BIENVENIDA -->
-<div class="retired-tool" id="tab1" aria-hidden="true">
-  <div class="section-title">Generador de Base para Correos de Bienvenida</div>
-  <div class="section-sub">Sube la nómina original y completa los datos de la inducción.</div>
-  <div class="form-group" style="max-width:600px">
-    <label>📥 Sube la nómina original</label>
-    <div class="file-drop" id="drop2">
-      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFiles(this, 'drop2', 't2-file')" />
-      📂 Haz clic o arrastra el archivo aquí
-      <div class="file-name" id="drop2-names"></div>
-    </div>
-  </div>
-  <hr class="divider">
-  <div style="font-weight:700; margin-bottom:1rem;">2. Ingresa los datos de la Inducción</div>
-  <div class="helper" id="t2-nrcs-status">⏳ Cargando cursos desde nrcs.json...</div>
-  <div class="form-grid">
-    <!-- TUTOR -->
-    <div class="form-group">
-      <label>NOMBRE TUTOR</label>
-      <select id="t2-tutor-sel" onchange="t2AutoTutor()">
-        <option value="">— Selecciona tutor —</option>
-        <option value="HANS NOVAKOVIC">HANS NOVAKOVIC</option>
-        <option value="KIMBERLY JORQUERA">KIMBERLY JORQUERA</option>
-        <option value="MARTA GONZALEZ">MARTA GONZALEZ</option>
-        <option value="DANITZA JANSEN">DANITZA JANSEN</option>
-        <option value="SYLVIA VALENZUELA">SYLVIA VALENZUELA</option>
-        <option value="PAULA PARDO">PAULA PARDO</option>
-        <option value="MARIA FERNANDA GONZALEZ">MARIA FERNANDA GONZALEZ</option>
-        <option value="BARBARA ROJAS">BARBARA ROJAS</option>
-        <option value="CONSTANZA CONTRERAS">CONSTANZA CONTRERAS</option>
-        <option value="CARLA PEÑA">CARLA PEÑA</option>
-        <option value="NOEMI PAZ">NOEMI PAZ</option>
-        <option value="ORIETTA CORTES">ORIETTA CORTES</option>
-        <option value="HECTOR TAPIA">HECTOR TAPIA</option>
-        <option value="CONSUELO PARGA">CONSUELO PARGA</option>
-        <option value="FRANCISCA INDA">FRANCISCA INDA</option>
-        <option value="JAVIERA ROJAS">JAVIERA ROJAS</option>
-        <option value="ALYSON HERNANDEZ">ALYSON HERNANDEZ</option>
-        <option value="POR DEFINIR">POR DEFINIR</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>CORREO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
-      <input type="text" id="t2-tc" placeholder="Se autocompleta al elegir tutor" />
-    </div>
-    <div class="form-group">
-      <label>NOMBRE COMPLETO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
-      <input type="text" id="t2-tn" placeholder="Se autocompleta al elegir tutor" />
-    </div>
-    <div class="form-group">
-      <label>ANEXO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
-      <input type="text" id="t2-ta" placeholder="Se autocompleta al elegir tutor" />
-    </div>
-    <div class="form-group"><label>NOMBRE DE PROGRAMA</label><input type="text" id="t2-pr" placeholder="Nombre del programa" /></div>
-    <!-- BUSCADOR NRC INDUCCION -->
-    <div class="form-group">
-      <label>BUSCAR NRC INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta fechas)</span></label>
-      <input type="text" id="t2-nrc-search" placeholder="Escribe NRC, código o tutor..." oninput="t2BuscarNrc()" autocomplete="off" />
-      <div id="t2-nrc-dropdown" style="display:none;position:relative;z-index:60;">
-        <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-          <div id="t2-nrc-options"></div>
-        </div>
-      </div>
-      <input type="hidden" id="t2-ni" />
-    </div>
-    <div class="form-group"><label>NRC Y NOMBRE DE CURSO INDUCC <span style="color:#95a3b8;font-weight:400;text-transform:none;">(editable)</span></label><input type="text" id="t2-ni-display" placeholder="Ej: 12345 - Inducción Postgrado" oninput="document.getElementById('t2-ni').value=this.value" /></div>
-    <div class="form-group"><label>NOMBRE PRIMER CURSO</label><input type="text" id="t2-c1" placeholder="Nombre del primer curso" /></div>
-    <div class="form-group"><label>NOMBRE SEGUNDO CURSO (opcional)</label><input type="text" id="t2-c2" placeholder="Opcional" /></div>
-    <div class="form-group">
-      <label>FECHA INICIO INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
-      <input type="date" id="t2-fi" />
-    </div>
-    <div class="form-group">
-      <label>FECHA TERMINO INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label>
-      <input type="date" id="t2-ff" />
-    </div>
-  </div>
-  <div class="btn-row"><button class="btn primary" onclick="processTab2()">🪄 Construir Plantilla Exacta</button></div>
-  <div id="t2-result"></div>
-  <div id="t2-actions" style="display:none" class="btn-row">
-    <button class="btn" onclick="downloadTab2()">📥 Descargar Excel</button>
-    <button class="btn primary" onclick="sendToSharePoint()">📨 Enviar a SharePoint</button>
-  </div>
-  <div id="t2-sp-result"></div>
-  <div id="t2-paso3" style="display:none; margin-top:1.2rem;">
-    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
-      <div style="background:var(--line);color:#17202d;font-weight:800;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;flex-shrink:0;">PASO 3</div>
-      <div style="font-weight:700; font-size:1rem;">Enviar correos de bienvenida</div>
-    </div>
-    <div class="helper">Los datos ya están en SharePoint. Abre la app para disparar el envío.</div>
-    <button class="btn primary" style="font-size:0.95rem; padding:0.6rem 1.4rem;" onclick="window.open('https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/ba7dd4d1-b423-429c-b438-45dc98c1d1c5?tenantId=8fbed393-d03b-49f8-be79-cd5e1f590fb2&hint=dcd088c4-550e-4bd6-8ccb-e2857889ac7e&sourcetime=1774392012028','_blank')">
-      📧 Abrir app — Enviar correos de bienvenida
-    </button>
-  </div>
-</div>
-
-<!-- TAB 3: INVITACIÓN SINCRÓNICA -->
-<div class="retired-tool" id="tab2" aria-hidden="true">
-  <div class="section-title">Envío Invitación Sesión Sincrónica</div>
-  <div class="section-sub">Sube la nómina original para generar las invitaciones.</div>
-  <div class="form-group" style="max-width:600px">
-    <label>📥 Sube la nómina original para invitación</label>
-    <div class="file-drop" id="drop3">
-      <input type="file" accept=".xlsx,.xls,.csv" onchange="handleFiles(this, 'drop3', 't3-file')" />
-      📂 Haz clic o arrastra el archivo aquí
-      <div class="file-name" id="drop3-names"></div>
-    </div>
-  </div>
-  <hr class="divider">
-  <div style="font-weight:700; margin-bottom:1rem;">2. Ingresa los datos de la sesión</div>
-  <div class="form-grid">
-    <!-- BUSCADOR NRC INDUCCION -->
-    <div class="form-group full">
-      <label>BUSCAR CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta tutor y fecha)</span></label>
-      <input type="text" id="t3-nrc-search" placeholder="Escribe NRC, código o tutor..." oninput="t3BuscarNrc()" autocomplete="off" />
-      <div id="t3-nrc-dropdown" style="display:none;position:relative;z-index:60;">
-        <div style="background:#223246;border:1px solid rgba(246,193,40,0.25);border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-          <div id="t3-nrc-options"></div>
-        </div>
-      </div>
-    </div>
-    <div class="form-group"><label>CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(editable)</span></label><input type="text" id="t3-curso" placeholder="Se autocompleta al buscar NRC" /></div>
-    <div class="form-group"><label>FECHA INICIO CURSO DE INDUCCION <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="date" id="t3-fechainicio" /></div>
-    <div class="form-group"><label>NOMBRE TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="text" id="t3-nombretutor" placeholder="Se autocompleta al buscar NRC" /></div>
-    <div class="form-group"><label>CORREO TUTOR <span style="color:#95a3b8;font-weight:400;text-transform:none;">(autocompleta)</span></label><input type="text" id="t3-correotutor" placeholder="Se autocompleta al buscar NRC" /></div>
-    <div class="form-group"><label>LINK SESION SINCRONICA</label><input type="text" id="t3-link" placeholder="https://..." /></div>
-    <div class="form-group"><label>FECHA SESION SINCRONICA</label><input type="date" id="t3-fechasesion" /></div>
-    <div class="form-group"><label>HORA SESION SINCRONICA</label><input type="time" id="t3-hora" /></div>
-    <input type="hidden" id="t3-fechacal" value="" />
-  </div>
-  <div class="btn-row"><button class="btn primary" onclick="processTab3()">🪄 Construir Invitaciones</button></div>
-  <div id="t3-result"></div>
-  <div id="t3-actions" style="display:none" class="btn-row">
-    <button class="btn" onclick="downloadTab3()">📥 Descargar Excel Invitación</button>
-    <button class="btn primary" onclick="sendToSharePointSync()">📨 Enviar a SharePoint</button>
-  </div>
-  <div id="t3-sp-result"></div>
-  <div id="t3-paso3" style="display:none; margin-top:1.2rem;">
-    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
-      <div style="background:var(--line);color:#17202d;font-weight:800;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;flex-shrink:0;">PASO 3</div>
-      <div style="font-weight:700; font-size:1rem;">Enviar invitaciones sincónicas</div>
-    </div>
-    <div class="helper">Los datos ya están en SharePoint. Abre la app para disparar el envío.</div>
-    <button class="btn primary" style="font-size:0.95rem; padding:0.6rem 1.4rem;" onclick="window.open('https://apps.powerapps.com/play/e/default-8fbed393-d03b-49f8-be79-cd5e1f590fb2/a/ba7dd4d1-b423-429c-b438-45dc98c1d1c5?tenantId=8fbed393-d03b-49f8-be79-cd5e1f590fb2&hint=dcd088c4-550e-4bd6-8ccb-e2857889ac7e&sourcetime=1774392012028','_blank')">
-      📅 Abrir app — Enviar invitaciones sincónicas
-    </button>
-  </div>
-</div>
+<!-- Pestañas retiradas depuradas para reducir peso del DOM; t2CargarNrcs sigue activo para el catálogo compartido -->
 
 <!-- TAB 4: CALENDARIOS -->
 <div class="tab-panel" id="tab3">
@@ -745,6 +605,17 @@ input[type=text],input[type=date],input[type=time],input[type=url],textarea,sele
 <div class="etop-toast" id="etop-toast">✅ Correo copiado — pega en Outlook con Ctrl+V</div>
 
 <script>
+// ─── NON-BLOCKING NOTIFICATIONS ──────────────────────────────────────────────
+let etopToastTimer=null;
+function etopNotify(message,kind=''){
+  const toast=document.getElementById('etop-toast');
+  if(!toast)return;
+  toast.textContent=message;
+  toast.className='etop-toast show'+(kind?' is-'+kind:'');
+  clearTimeout(etopToastTimer);
+  etopToastTimer=setTimeout(()=>{toast.classList.remove('show');},3600);
+}
+
 // ─── GLOBAL STATE ─────────────────────────────────────────────────────────────
 const state = {
   t1Files:[], t1mFiles:[], t1mAccumulated:[],
@@ -1419,9 +1290,9 @@ function calShowMapping(){
  btn.addEventListener('click',()=>{
   const mapped=selectors.filter(x=>x.value);
   const fields=mapped.map(x=>x.value);
-  if(new Set(fields).size!==fields.length){alert('Un campo ETOP no puede asignarse a dos columnas.');return;}
-  if(!fields.includes('codigo')&&!fields.includes('nombre')){alert('Asigna al menos Código curso o Nombre curso.');return;}
-  if(!fields.includes('inicio')&&!fields.includes('rango')){alert('Asigna Fecha inicio o Rango de fechas.');return;}
+  if(new Set(fields).size!==fields.length){etopNotify('Un campo ETOP no puede asignarse a dos columnas.','error');return;}
+  if(!fields.includes('codigo')&&!fields.includes('nombre')){etopNotify('Asigna al menos Código curso o Nombre curso.','error');return;}
+  if(!fields.includes('inicio')&&!fields.includes('rango')){etopNotify('Asigna Fecha inicio o Rango de fechas.','error');return;}
   const cols=header.map(()=>''),canonical={nrc:'NRC',codigo:'Código curso',nombre:'Nombre curso',inicio:'Fecha de inicio',termino:'Fecha de término',periodo:'Período',profesor:'Profesor',facultad:'Facultad',version:'Versión',rango:'Rango de fechas'};
   mapped.forEach(x=>cols[Number(x.dataset.column)]=canonical[x.value]);
   const rows=[cols,...calWorkbookRows.rows.slice(1)];
@@ -1838,7 +1709,7 @@ function cActualizarPara(){
   document.getElementById('c-para').value=personas.map(x=>x.correo).join('; ');
   document.getElementById('c-coord').value=[...new Set(personas.map(x=>x.nombre.trim()))].join(' - ');
 }
-function cCopiarIntakes(){const nombres=cGetCarpetas().map(c=>c.nombre).filter(Boolean);if(!nombres.length)return alert('Agrega versiones al lote.');navigator.clipboard.writeText(nombres.join('\n')).then(()=>alert('Intakes copiados. Pégalos en el flujo V4.'))}
+function cCopiarIntakes(){const nombres=cGetCarpetas().map(c=>c.nombre).filter(Boolean);if(!nombres.length)return etopNotify('Agrega versiones al lote.','error');navigator.clipboard.writeText(nombres.join('\n')).then(()=>etopNotify('Intakes copiados. Pégalos en el flujo V4.','success'))}
 const C_HTTP_KEY='etop_carpeta_http_endpoint_local_v1';
 const C_OLD_HTTP_KEY='etop_carpeta_http_endpoint_session';
 function cEndpoint(){return localStorage.getItem(C_HTTP_KEY)||sessionStorage.getItem(C_OLD_HTTP_KEY)||''}
@@ -1858,24 +1729,24 @@ let cProcesando=false;
 function cGuardarEndpoint(){
  const input=document.getElementById('c-url-flujo');
  const raw=input.value.trim().replace(/&amp;/g,'&');
- let url;try{url=new URL(raw)}catch(e){return alert('La dirección HTTP no tiene un formato válido.')}
- if(url.protocol!=='https:'||!url.hostname.endsWith('.environment.api.powerplatform.com')||!url.pathname.includes('/triggers/manual/paths/invoke')||!url.searchParams.get('sig'))return alert('Utiliza la URL HTTP POST completa que muestra Power Automate.');
- try{localStorage.setItem(C_HTTP_KEY,url.toString());input.value='';document.getElementById('c-estado-envio').textContent='Dirección configurada en este navegador para futuros usos.'}catch(e){alert('No se pudo conservar la dirección en este navegador.')}
+ let url;try{url=new URL(raw)}catch(e){return etopNotify('La dirección HTTP no tiene un formato válido.','error')}
+ if(url.protocol!=='https:'||!url.hostname.endsWith('.environment.api.powerplatform.com')||!url.pathname.includes('/triggers/manual/paths/invoke')||!url.searchParams.get('sig'))return etopNotify('Utiliza la URL HTTP POST completa que muestra Power Automate.','error');
+ try{localStorage.setItem(C_HTTP_KEY,url.toString());input.value='';document.getElementById('c-estado-envio').textContent='Dirección configurada en este navegador para futuros usos.';etopNotify('Conexión guardada en este navegador.','success')}catch(e){etopNotify('No se pudo conservar la dirección en este navegador.','error')}
 }
 function cActualizarEstadoProceso(msg){document.getElementById('c-estado-envio').textContent=msg}
 async function cEjecutarLote(){
  if(cProcesando)return;
  const names=cGetCarpetas().map(x=>x.nombre).filter(Boolean);
  const unique=[...new Set(names)];
- if(!unique.length)return alert('Primero agrega al menos una versión.');
- if(unique.length!==names.length)return alert('Existen versiones duplicadas en el lote. Corrígelas antes de continuar.');
+ if(!unique.length)return etopNotify('Primero agrega al menos una versión.','error');
+ if(unique.length!==names.length)return etopNotify('Existen versiones duplicadas en el lote. Corrígelas antes de continuar.','error');
  const programa=document.getElementById('c-intake').value.trim();
- if(!programa)return alert('Introduce el nombre del programa para el correo.');
+ if(!programa)return etopNotify('Introduce el nombre del programa para el correo.','error');
  const para=document.getElementById('c-para').value.trim();
- if(!para)return alert('Selecciona al menos un coordinador o tutor destinatario.');
+ if(!para)return etopNotify('Selecciona al menos un coordinador o tutor destinatario.','error');
  const endpoint=cEndpoint();
- if(!endpoint)return alert('La conexión de Power Automate aún no se ha activado en este navegador.');
- if(unique.some(x=>/[\\/:*?"<>|]/.test(x)))return alert('Revisa los nombres de las versiones: hay caracteres no permitidos en SharePoint.');
+ if(!endpoint)return etopNotify('La conexión de Power Automate aún no se ha activado en este navegador.','error');
+ if(unique.some(x=>/[\\/:*?"<>|]/.test(x)))return etopNotify('Revisa los nombres de las versiones: hay caracteres no permitidos en SharePoint.','error');
  const coord=document.getElementById('c-coord').value.trim()||'Coordinación académica';
  const html=cBuildEmail(coord,programa,unique.map(nombre=>({nombre})));
  const asunto='ETOP · Calendarios registrados y carpetas creadas · '+unique.length+' versión'+(unique.length===1?'':'es');
@@ -1900,7 +1771,7 @@ async function cEjecutarLote(){
   cActualizarEstadoProceso('❌ '+reason+' Detalle: '+(err.message||String(err))+'. Revisa el HISTORIAL DE EJECUCIÓN del flujo HTTP: si no aparece una ejecución a esta hora, la solicitud no llegó al disparador. No vuelvas a enviarla antes de comprobarlo.');
  }finally{cProcesando=false;boton.disabled=false}
 }
-function cAbrirOutlook(){if(!cHTML)cGenerar();if(!cHTML)return;const para=document.getElementById('c-para').value;if(!para)return alert('Selecciona destinatarios.');const cc=document.getElementById('c-cc').value;const subject='ETOP · Calendarios y carpetas creadas · '+cGetCarpetas().length+' versiones';const body='Se encuentran disponibles las carpetas de los siguientes intakes:\n'+cGetCarpetas().map(x=>'• '+x.nombre).join('\n')+'\n\nFavor respaldar nómina y calendarios, correos de bienvenida, invitaciones sincrónicas y QA2.';const p=new URLSearchParams({to:para,subject,body});if(cc)p.set('cc',cc);window.open('https://outlook.office.com/mail/deeplink/compose?'+p.toString(),'_blank','noopener,noreferrer');alert('Se abrió el borrador. Para mantener el formato institucional, utiliza Copiar correo y pega en el cuerpo de Outlook antes de enviar.')}
+function cAbrirOutlook(){if(!cHTML)cGenerar();if(!cHTML)return;const para=document.getElementById('c-para').value;if(!para)return etopNotify('Selecciona destinatarios.','error');const cc=document.getElementById('c-cc').value;const subject='ETOP · Calendarios y carpetas creadas · '+cGetCarpetas().length+' versiones';const body='Se encuentran disponibles las carpetas de los siguientes intakes:\n'+cGetCarpetas().map(x=>'• '+x.nombre).join('\n')+'\n\nFavor respaldar nómina y calendarios, correos de bienvenida, invitaciones sincrónicas y QA2.';const p=new URLSearchParams({to:para,subject,body});if(cc)p.set('cc',cc);window.open('https://outlook.office.com/mail/deeplink/compose?'+p.toString(),'_blank','noopener,noreferrer');etopNotify('Borrador abierto. Usa Copiar correo para conservar el formato institucional.','success')}
 
 
 function cAdd(){
@@ -2054,10 +1925,10 @@ function cGenerar(){
   const coord=document.getElementById('c-coord').value.trim();
   const intake=document.getElementById('c-intake').value.trim();
   const carpetas=cGetCarpetas();
-  if(!coord){alert('Ingresa el nombre del coordinador/tutora.');return;}
-  if(!intake){alert('Ingresa el nombre del programa/intake.');return;}
-  if(!carpetas.length){alert('Agrega al menos una carpeta.');return;}
-  if(!carpetas.every(x=>x.verificado)){alert('Debes verificar en SharePoint todas las carpetas antes de afirmar su creación en el correo.');return;}
+  if(!coord){etopNotify('Ingresa el nombre del coordinador/tutora.','error');return;}
+  if(!intake){etopNotify('Ingresa el nombre del programa/intake.','error');return;}
+  if(!carpetas.length){etopNotify('Agrega al menos una carpeta.','error');return;}
+  if(!carpetas.every(x=>x.verificado)){etopNotify('Debes verificar en SharePoint todas las carpetas antes de afirmar su creación en el correo.','error');return;}
   cHTML=cBuildEmail(coord,intake,carpetas);
   const rendered=document.getElementById('c-rendered');
   rendered.innerHTML=`<div class="c-email-box">${cHTML}</div>`;
@@ -2073,12 +1944,12 @@ function cTab(tab,btn){
 }
 
 function cCopiar(){
-  if(!cHTML){alert('Primero genera el correo.');return;}
+  if(!cHTML){etopNotify('Primero genera el correo.','error');return;}
   const btn=document.getElementById('c-copy-btn');
-  const toast=document.getElementById('etop-toast');
   const showOk=()=>{
-    btn.textContent='✅ Copiado';btn.classList.add('copied');toast.classList.add('show');
-    setTimeout(()=>{btn.innerHTML='📋 Copiar correo';btn.classList.remove('copied');toast.classList.remove('show');},2600);
+    btn.textContent='✅ Copiado';btn.classList.add('copied');
+    etopNotify('Correo copiado — pega en Outlook con Ctrl+V','success');
+    setTimeout(()=>{btn.innerHTML='📋 Copiar correo';btn.classList.remove('copied');},2600);
   };
   try{
     const blob=new Blob([cHTML],{type:'text/html'});
@@ -2302,7 +2173,7 @@ function t4LlenarSelect(id,valores,placeholder,conservar){
 const T4_CUSTOM_CATALOG_KEY='etop_t4_catalogo_manual_v1';
 let t4Custom=[];
 try{const c=JSON.parse(localStorage.getItem(T4_CUSTOM_CATALOG_KEY)||'[]');if(Array.isArray(c))t4Custom=c.filter(x=>x&&x.programa&&x.materia)}catch(e){}
-function t4GuardarCatalogo(){try{localStorage.setItem(T4_CUSTOM_CATALOG_KEY,JSON.stringify(t4Custom))}catch(e){alert('El navegador no pudo guardar el catálogo personalizado.')}}
+function t4GuardarCatalogo(){try{localStorage.setItem(T4_CUSTOM_CATALOG_KEY,JSON.stringify(t4Custom))}catch(e){etopNotify('El navegador no pudo guardar el catálogo personalizado.','error')}}
 function t4RegistrosCatalogo(){
  const orig=Array.isArray(t2NrcsData)?t2NrcsData:[];
  return orig.concat(t4Custom.map(x=>({'nombre programa':x.programa,materia:x.materia,facultad:x.facultad})));
@@ -2311,37 +2182,39 @@ function t4AgregarPrograma(){
  const nombre=prompt('Nombre completo del nuevo programa académico:');
  if(nombre===null)return;
  const programa=nombre.trim();
- if(!programa)return alert('Ingresa un nombre de programa.');
+ if(!programa)return etopNotify('Ingresa un nombre de programa.','error');
  const original=t4RegistrosCatalogo().find(x=>t4Normalizar(x['nombre programa'])===t4Normalizar(programa));
- if(original){document.getElementById('t4-programa').value=original['nombre programa'];t4ProgramaCambio();return alert('El programa ya existe. Quedó seleccionado; puedes añadirle una materia nueva.')}
+ if(original){document.getElementById('t4-programa').value=original['nombre programa'];t4ProgramaCambio();return etopNotify('El programa ya existe y quedó seleccionado; puedes añadirle una materia nueva.')}
  const code=prompt('Materia o sigla que identifica al programa (ej. MGPC, MAPS):');
  if(code===null)return;
  const materia=code.trim().toUpperCase();
- if(!/^[A-Z0-9]{2,20}$/.test(materia))return alert('La materia debe contener entre 2 y 20 letras o números.');
+ if(!/^[A-Z0-9]{2,20}$/.test(materia))return etopNotify('La materia debe contener entre 2 y 20 letras o números.','error');
  const faculty=prompt('Código de facultad (ej. FEDU_INNOVADO, MEDI, ENFE):');
  if(faculty===null)return;
  const facultad=faculty.trim().toUpperCase();
- if(!facultad)return alert('Debes indicar la facultad.');
+ if(!facultad)return etopNotify('Debes indicar la facultad.','error');
  t4Custom.push({programa,materia,facultad});
  t4GuardarCatalogo();t4CargarCatalogos();
  document.getElementById('t4-programa').value=programa;t4ProgramaCambio();
  document.getElementById('t4-materia').value=materia;
  document.getElementById('t4-facultad').value=facultad;t4ProponerIntake();
+ etopNotify('Programa agregado al catálogo local.','success');
 }
 function t4AgregarMateria(){
  const programa=document.getElementById('t4-programa').value;
- if(!programa)return alert('Primero selecciona o agrega un programa.');
+ if(!programa)return etopNotify('Primero selecciona o agrega un programa.','error');
  const code=prompt('Nueva materia o sigla para '+programa+':');
  if(code===null)return;
  const materia=code.trim().toUpperCase();
- if(!/^[A-Z0-9]{2,20}$/.test(materia))return alert('Utiliza entre 2 y 20 letras o números.');
+ if(!/^[A-Z0-9]{2,20}$/.test(materia))return etopNotify('Utiliza entre 2 y 20 letras o números.','error');
  const related=t4RegistrosCatalogo().filter(x=>t4Normalizar(x['nombre programa'])===t4Normalizar(programa));
- if(related.some(x=>t4Normalizar(x.materia)===materia)){document.getElementById('t4-materia').value=related.find(x=>t4Normalizar(x.materia)===materia).materia;return alert('La materia ya existe y quedó seleccionada.')}
+ if(related.some(x=>t4Normalizar(x.materia)===materia)){document.getElementById('t4-materia').value=related.find(x=>t4Normalizar(x.materia)===materia).materia;return etopNotify('La materia ya existe y quedó seleccionada.')}
  const fac=prompt('Código de facultad para esta materia:',document.getElementById('t4-facultad').value||related[0]?.facultad||'');
  if(fac===null)return;
- const facultad=fac.trim().toUpperCase();if(!facultad)return alert('Debe indicar la facultad.');
+ const facultad=fac.trim().toUpperCase();if(!facultad)return etopNotify('Debe indicar la facultad.','error');
  t4Custom.push({programa,materia,facultad});t4GuardarCatalogo();t4ProgramaCambio(true);
  document.getElementById('t4-materia').value=materia;document.getElementById('t4-facultad').value=facultad;t4ProponerIntake();
+ etopNotify('Materia agregada al catálogo local.','success');
 }
 
 function t4CargarCatalogos(){
@@ -2588,5 +2461,12 @@ function tvParseBienvenidasCompat(rawRows){
   setTimeout(tvRefreshIntakes,1200);
 })();
 </script>
+<nav class="etop-bottom" aria-label="Navegación principal">
+  <a href="./index.html#inicio"><span class="nav-ico" aria-hidden="true">⌂</span><small>Inicio</small></a>
+  <a href="./index.html#cursos"><span class="nav-ico" aria-hidden="true">▤</span><small>Cursos</small></a>
+  <a href="./herramientas.html" class="active" aria-current="page"><span class="nav-ico" aria-hidden="true">⚒</span><small>Herramientas</small></a>
+  <a href="./index.html#reportes"><span class="nav-ico" aria-hidden="true">▥</span><small>Reportes</small></a>
+  <a href="./index.html#ajustes"><span class="nav-ico" aria-hidden="true">⚙</span><small>Ajustes</small></a>
+</nav>
 </body>
 </html>

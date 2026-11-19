@@ -1,0 +1,181 @@
+/* Unified ETOP Móvil shell for Herramientas — matches index.html navigation & typography */
+body {
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans", system-ui, -apple-system, sans-serif !important;
+  background: #f2f5f9 !important;
+  color: #13253a !important;
+  padding-bottom: 96px !important;
+}
+
+.etop-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #dde5ee;
+}
+
+.etop-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #13253a;
+  min-width: 0;
+}
+
+.etop-brand img {
+  flex-shrink: 0;
+  border-radius: 9px;
+}
+
+.etop-brand strong,
+.etop-brand small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.etop-brand strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.etop-brand small {
+  font-size: 11px;
+  color: #6c7f94;
+  margin-top: 1px;
+}
+
+.etop-clear-btn {
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid #c5d4e4;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #154a7e;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.etop-clear-btn:hover {
+  background: #e6f0fa;
+}
+
+.tabs-nav {
+  position: static !important;
+  max-width: 920px;
+  margin: 14px auto 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 14px !important;
+  gap: 8px !important;
+}
+
+.tab-btn {
+  min-height: 44px;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #dde5ee !important;
+  color: #52657a !important;
+}
+
+.tab-btn.active {
+  background: #154a7e !important;
+  border-color: #154a7e !important;
+  color: #ffffff !important;
+}
+
+.tab-panel {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.etop-toast {
+  left: 50% !important;
+  right: auto !important;
+  bottom: 82px !important;
+  transform: translate(-50%, 8px) !important;
+  max-width: min(92vw, 460px);
+  text-align: center;
+  background: #13253a !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  z-index: 90 !important;
+}
+
+.etop-toast.show {
+  transform: translate(-50%, 0) !important;
+}
+
+.etop-toast.is-error {
+  background: #9e2d25 !important;
+  color: #ffffff !important;
+}
+
+.etop-toast.is-success {
+  background: #1b6b42 !important;
+  color: #ffffff !important;
+}
+
+.etop-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 1120px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #dde5ee;
+  padding: 6px 4px max(8px, env(safe-area-inset-bottom));
+}
+
+.etop-bottom a {
+  text-decoration: none;
+  color: #6c7f94;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  padding: 4px 2px;
+}
+
+.etop-bottom a.active {
+  color: #154a7e;
+  font-weight: 700;
+}
+
+.etop-bottom .nav-ico {
+  font-size: 19px;
+  line-height: 1.1;
+}
+
+.etop-bottom small {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+@media (min-width: 880px) {
+  .etop-top {
+    padding: 14px 28px;
+  }
+}
